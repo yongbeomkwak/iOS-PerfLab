@@ -1,0 +1,400 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		99755C30572A2E624FFA338B /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = 1C4A6C46353AEEE70D68D36B /* Shared */; };
+		B9A603B57C034B99912E10DF /* TopicCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = 9CBEA84448BF81481510CB22 /* TopicCatalog */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		43BC004809CA9D722138B071 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65A37630DFB4BF0CAA344115 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE63B4FDF61A2856AF80ABB9;
+			remoteInfo = PerfLab;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		2AE389969B37DC6884424A8C /* PerfLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PerfLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA854DC19E74752BDD70BBF3 /* PerfLabUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PerfLabUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		2DE2F8F226C4C3943AD37CD1 /* AppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AppUITests;
+			sourceTree = "<group>";
+		};
+		947CD96788839B3E6917CB6C /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		21C16C38FD653A8CB163D851 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				99755C30572A2E624FFA338B /* Shared in Frameworks */,
+				B9A603B57C034B99912E10DF /* TopicCatalog in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A305D809BF371495875366A2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		06318B2527030AB396D3CC2F = {
+			isa = PBXGroup;
+			children = (
+				947CD96788839B3E6917CB6C /* App */,
+				2DE2F8F226C4C3943AD37CD1 /* AppUITests */,
+				CCA681830A2DB54B20AB2CC2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CCA681830A2DB54B20AB2CC2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2AE389969B37DC6884424A8C /* PerfLab.app */,
+				FA854DC19E74752BDD70BBF3 /* PerfLabUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		76729A0DF8FAFE20E289CDDC /* PerfLabUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D454944F7CC4FD79F52B6D29 /* Build configuration list for PBXNativeTarget "PerfLabUITests" */;
+			buildPhases = (
+				3EBE909650A16AD8988A21B4 /* Sources */,
+				A305D809BF371495875366A2 /* Frameworks */,
+				0D1E7D8119B33DB399E79B9C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D4EA3315D9532A7628AE7B16 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				2DE2F8F226C4C3943AD37CD1 /* AppUITests */,
+			);
+			name = PerfLabUITests;
+			packageProductDependencies = (
+			);
+			productName = PerfLabUITests;
+			productReference = FA854DC19E74752BDD70BBF3 /* PerfLabUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		BE63B4FDF61A2856AF80ABB9 /* PerfLab */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 53DB0E30751EDF278A4B42E3 /* Build configuration list for PBXNativeTarget "PerfLab" */;
+			buildPhases = (
+				1F432E44FD1BC8CEA933CC93 /* Sources */,
+				21C16C38FD653A8CB163D851 /* Frameworks */,
+				C69A8ADED2371DF17BD0DE23 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				947CD96788839B3E6917CB6C /* App */,
+			);
+			name = PerfLab;
+			packageProductDependencies = (
+				1C4A6C46353AEEE70D68D36B /* Shared */,
+				9CBEA84448BF81481510CB22 /* TopicCatalog */,
+			);
+			productName = PerfLab;
+			productReference = 2AE389969B37DC6884424A8C /* PerfLab.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		65A37630DFB4BF0CAA344115 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					76729A0DF8FAFE20E289CDDC = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = BE63B4FDF61A2856AF80ABB9;
+					};
+					BE63B4FDF61A2856AF80ABB9 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = 17E864780F832FBF45420BFF /* Build configuration list for PBXProject "PerfLab" */;
+			developmentRegion = ko;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ko,
+				en,
+				Base,
+			);
+			mainGroup = 06318B2527030AB396D3CC2F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7374C19067750CD557D95D1E /* XCLocalSwiftPackageReference "Packages/Shared" */,
+				F4162C101B0D4229639CE0DF /* XCLocalSwiftPackageReference "Packages/Topics" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CCA681830A2DB54B20AB2CC2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BE63B4FDF61A2856AF80ABB9 /* PerfLab */,
+				76729A0DF8FAFE20E289CDDC /* PerfLabUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0D1E7D8119B33DB399E79B9C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C69A8ADED2371DF17BD0DE23 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1F432E44FD1BC8CEA933CC93 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3EBE909650A16AD8988A21B4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D4EA3315D9532A7628AE7B16 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE63B4FDF61A2856AF80ABB9 /* PerfLab */;
+			targetProxy = 43BC004809CA9D722138B071 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1598E282695FA48D1B54E3FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PerfLab;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yongbeomkwak.PerfLab;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		1F765D929A08F1D711716AA9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		81645E07727A0C717EB60242 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yongbeomkwak.PerfLabUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = PerfLab;
+			};
+			name = Release;
+		};
+		B6C09947CCAA5D9FCDEEB301 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = PerfLab;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yongbeomkwak.PerfLab;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CA30C68CF24BDC8E8B72BC0B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F54DB1EA410B5816DA6D101D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yongbeomkwak.PerfLabUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = PerfLab;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		17E864780F832FBF45420BFF /* Build configuration list for PBXProject "PerfLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1F765D929A08F1D711716AA9 /* Debug */,
+				CA30C68CF24BDC8E8B72BC0B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		53DB0E30751EDF278A4B42E3 /* Build configuration list for PBXNativeTarget "PerfLab" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1598E282695FA48D1B54E3FA /* Debug */,
+				B6C09947CCAA5D9FCDEEB301 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D454944F7CC4FD79F52B6D29 /* Build configuration list for PBXNativeTarget "PerfLabUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F54DB1EA410B5816DA6D101D /* Debug */,
+				81645E07727A0C717EB60242 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		7374C19067750CD557D95D1E /* XCLocalSwiftPackageReference "Packages/Shared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Shared;
+		};
+		F4162C101B0D4229639CE0DF /* XCLocalSwiftPackageReference "Packages/Topics" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Topics;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1C4A6C46353AEEE70D68D36B /* Shared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Shared;
+		};
+		9CBEA84448BF81481510CB22 /* TopicCatalog */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TopicCatalog;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 65A37630DFB4BF0CAA344115 /* Project object */;
+}

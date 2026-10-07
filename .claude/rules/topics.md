@@ -1,0 +1,37 @@
+---
+paths:
+  - "Packages/Topics/**"
+---
+
+# 주제 구현 규칙
+
+## 공정한 비교
+
+- **모든 Stage는 `Scenario`의 같은 입력과 같은 요구사항을 쓴다.** Stage 안에서 데이터를 따로 만들거나 데이터 규모, 갱신 주기를 바꾸지 않는다.
+- **Stage 0은 "자연스러운 순진한 구현"이다.** 일부러 느리게 만들지 않는다. 실무에서 처음 작성할 법한 코드여야 한다.
+- **Stage N+1은 Stage N에서 출발한다.** 무엇을 바꿨는지 설명할 수 있어야 하고, 한 Stage에 서로 무관한 최적화를 섞지 않는다.
+- **결과(출력)는 모든 Stage에서 같아야 한다.** 화면에 보이는 결과나 계산 결과가 같다는 것을 `Tests/`의 정합성 테스트로 검증한다.
+- UIKit과 SwiftUI는 같은 Stage에서 같은 전략을 쓴다. 프레임워크 특성상 불가능하면 PLAN.md에 이유를 적는다.
+  SwiftUI Stage 2에서 `UIViewRepresentable`로 저수준 API를 감싸는 것은 허용하되, 그 사실을 문서에 명시한다.
+
+## Benchmark 모드
+
+- `context.isBenchmark == true`이면 사용자 입력 없이 시나리오를 스스로 재생한다 (자동 스크롤, 타이머 갱신 등).
+- 재생은 결정적이어야 한다. 시간 기반 랜덤, 네트워크 등 외부 요인을 쓰지 않는다.
+- 측정 시간(기본 10초) 동안 부하가 계속 유지되도록 반복 재생한다.
+
+## 코드
+
+- First-party 프레임워크만 쓴다. Topics 패키지에 외부 의존성을 추가하지 않는다.
+- 구현을 마친 Stage 파일에서는 `// PERFLAB: NOT_IMPLEMENTED` 마커를 지운다.
+- UIKit Stage는 `NotImplementedViewController` 대신 `UIViewController`를 상속하도록 바꾼다.
+- 핵심 구간은 `PerfSignpost.signposter`로 표시하고, 주제별 지표는 `context.metrics`로 기록한다.
+- Stage 파일 상단에 "이 Stage의 전략"을 1~3줄 주석으로 적는다. 블로그와 리뷰에서 그대로 인용한다.
+- 여러 Stage가 공유하는 모델과 유틸은 주제 폴더 루트(예: `Model.swift`)에 둔다. 단, 최적화 대상이 되는 로직은 공유하지 않는다.
+- `Shared` 패키지 수정이 필요하면 모든 주제에 쓸 수 있는 일반적인 기능인지 먼저 확인하고, 사용자에게 알린다.
+
+## 금지
+
+- `topic.json`의 `status` 직접 수정 (`scripts/perflab advance`만 사용)
+- `Package.swift`, `Catalog/TopicCatalog.swift` 수동 등록 (`scripts/perflab new`만 사용)
+- 측정하지 않은 수치를 문서에 쓰는 것

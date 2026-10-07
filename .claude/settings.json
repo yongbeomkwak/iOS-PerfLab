@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/perflab:*)",
+      "Bash(./scripts/perflab:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(xcrun xcresulttool:*)",
+      "Bash(xcrun xctrace list:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && echo '[PerfLab] 현재 주제 상태' && scripts/perflab status"
+          }
+        ]
+      }
+    ]
+  }
+}

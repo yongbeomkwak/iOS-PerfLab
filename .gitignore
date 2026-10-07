@@ -29,7 +29,6 @@ xcuserdata/
 # Swift Package Manager
 .build/
 .swiftpm/
-Packages/
 Package.pins
 
 # CocoaPods
@@ -37,12 +36,6 @@ Pods/
 
 # Carthage
 Carthage/Build/
-
-# Tuist
-Derived/
-*.xcworkspace
-!*.xcodeproj/project.xcworkspace
-.tuist-version
 
 # fastlane
 fastlane/report.xml
@@ -62,3 +55,6 @@ fastlane/test_output
 # Secrets
 .env
 *.xcconfig.local
+
+# Claude Code (개인 설정)
+.claude/settings.local.json

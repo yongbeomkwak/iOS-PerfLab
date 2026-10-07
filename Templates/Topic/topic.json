@@ -1,0 +1,11 @@
+{
+  "id": "__ID__",
+  "number": __NUMBER_RAW__,
+  "title": "__TITLE__",
+  "summary": "__SUMMARY__",
+  "category": "__CATEGORY__",
+  "tags": __TAGS__,
+  "status": "proposed",
+  "stages": [0, 1, 2],
+  "frameworks": ["uikit", "swiftui"]
+}
