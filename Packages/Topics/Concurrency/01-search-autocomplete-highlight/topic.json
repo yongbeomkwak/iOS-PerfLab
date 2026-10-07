@@ -4,8 +4,22 @@
   "title": "5만 개 항목 검색 자동완성, 키워드 하이라이트까지 타이핑을 따라가려면?",
   "summary": "입력마다 5만 개를 거르고 검색어를 강조하는 화면에서 메인 스레드 필터링, 문자열 인덱싱, 하이라이트 생성 비용을 줄인다",
   "category": "concurrency",
-  "tags": ["Task", "Cancellation", "String.Index", "UTF-16", "AttributedString", "IncrementalSearch"],
-  "status": "proposed",
-  "stages": [0, 1, 2],
-  "frameworks": ["uikit", "swiftui"]
+  "tags": [
+    "Task",
+    "Cancellation",
+    "String.Index",
+    "UTF-16",
+    "AttributedString",
+    "IncrementalSearch"
+  ],
+  "status": "planned",
+  "stages": [
+    0,
+    1,
+    2
+  ],
+  "frameworks": [
+    "uikit",
+    "swiftui"
+  ]
 }
