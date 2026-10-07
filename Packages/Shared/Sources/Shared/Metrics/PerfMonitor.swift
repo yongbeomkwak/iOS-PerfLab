@@ -44,6 +44,9 @@ public final class PerfMonitor {
 
     private var recording: Recording?
     /// 다음 display link 콜백에서 한 번 부를 클로저들 (`afterNextFrame(_:)`).
+    ///
+    /// 하나만 저장하면 tick 전에 부탁이 두 번 올 때 앞의 것을 덮어쓰므로 배열에 쌓는다.
+    /// 클로저는 부른 쪽의 맥락(예: 키 입력의 예정 시각)을 캡처해 들고 오므로, 여기서는 시각만 넘겨 부르면 된다.
     private var frameWaiters: [@MainActor (CFTimeInterval) -> Void] = []
 
     public init(sampleInterval: CFTimeInterval = 0.5) {
@@ -123,6 +126,8 @@ public final class PerfMonitor {
         lastTimestamp = link.timestamp
         windowFrames += 1
         if !frameWaiters.isEmpty {
+            // 사본을 떼어 내고 원본을 먼저 비운 뒤 사본만 실행한다. 클로저 안에서 다시 afterNextFrame을 부르면
+            // 그 부탁은 비워 둔 원본에 쌓여 다음 프레임에 불린다. 배열은 값 타입이라 이 대입이 스냅샷이 된다.
             let waiters = frameWaiters
             frameWaiters = []
             for waiter in waiters { waiter(link.targetTimestamp) }
