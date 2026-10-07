@@ -46,9 +46,9 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 | 단계 | 내가 하는 일 | Claude가 하는 일 | 산출물 | 완료 조건 (advance가 검사) |
 |---|---|---|---|---|
 | **proposed** | 후보 3개 중 하나 고르기 | 후보 제안, `perflab new`로 주제 폴더 생성 | `topic.json` | 메타데이터, 패키지와 카탈로그 등록 |
-| **planned** | ① 병목 예측, 내가 만든다면 어떻게 만들지 ② 계획 승인 | 시나리오, 지표, Stage 전략 설계 | `docs/PLAN.md`, `Scenario.swift` | PLAN과 Scenario에 TODO 없음, LEARNING `[Plan]` |
+| **planned** | ① 병목 예측, 내가 만든다면 어떻게 만들지 ② 계획 승인 | 시나리오, 지표, Stage 전략과 대가 지표 설계 | `docs/PLAN.md`, `Scenario.swift` | PLAN과 Scenario에 TODO 없음, 대가마다 지표 있음, LEARNING `[Plan]` |
 | **stage0~2** | ① 이 전략이 왜 빠를지, 대가는 무엇인지 예측 ② 핵심 변경 이해 확인, 시뮬레이터에서 HUD 보기 | UIKit과 SwiftUI 구현, 정합성 테스트, 공정성 리뷰 | `UIKit/`, `SwiftUI/`, `Tests/` | 마커 제거, 머리말(`// 전략:`), lint 통과, LEARNING `[Stage N]` |
-| **measured** | ① 결과 보기 전 수치 예측 ② 예측과 다른 이유 함께 추론 | Release 자동 측정, 결과표, 분석 | `results/`, `docs/RESULTS.md` | 한 기기에서 모든 조합과 baseline 결과, LEARNING `[Measure]` |
+| **measured** | ① 결과 보기 전 수치 예측 ② 예측과 다른 이유 함께 추론 | Release 자동 측정, 결과표, 대가 비교, 분석 | `results/`, `docs/RESULTS.md` | 한 기기에서 모든 조합과 baseline 결과, 모든 Stage에 대가 지표, LEARNING `[Measure]` |
 | **summarized** | 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글 작성 | `docs/SUMMARY.md` | TODO 없음 |
 | **archived** | 회고: 파이프라인에서 바꾸고 싶은 점 | README 표 갱신 | README | README에 등록 |
 
@@ -75,6 +75,8 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 
 - PLAN.md의 Stage 전략에는 **어느 축의 어떤 CS 개념**을 쓰는지 적는다.
 - 최적화는 대가가 있다. `struct`가 항상 빠른 것도, 동시성이 항상 빠른 것도 아니다. 예상과 다르게 느려지는 경우도 측정해 기록할 가치가 있다.
+- **잴 수 있는 대가는 반드시 측정 지표에 넣는다.** PLAN.md Stage 전략 표의 "대가 지표" 열에 지표 이름을 쓰고, 결과에서 Stage끼리 비교한다.
+  예) 인덱스나 캐시를 추가했다면 그 메모리를 커스텀 지표로 기록한다. 그 구조가 없는 Stage는 0을 기록한다.
 - 주제마다 Stage 2의 축이 한쪽(예: 렌더링)에만 몰리지 않게 고른다.
 
 ## 4. 명령어
