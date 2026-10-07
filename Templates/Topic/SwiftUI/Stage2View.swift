@@ -6,6 +6,6 @@ struct Stage2View: View {
     let context: TopicContext
 
     var body: some View {
-        NotImplementedView(stage: .lowLevel, framework: .swiftui)
+        NotImplementedView(stage: .advanced, framework: .swiftui)
     }
 }

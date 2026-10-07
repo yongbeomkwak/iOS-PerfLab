@@ -2,10 +2,10 @@
 public enum Stage: Int, CaseIterable, Codable, Hashable, Sendable, Identifiable, Comparable {
     /// 성능을 신경 쓰지 않은 가장 직관적인 구현 (기준점).
     case naive = 0
-    /// 프레임워크 수준의 최적화.
+    /// 병목을 알면 바로 떠올리는 관용적인 최적화.
     case optimized = 1
-    /// CoreGraphics, CoreAnimation, Metal, GCD 등 저수준 API까지 내려간 최적화.
-    case lowLevel = 2
+    /// 비용 모델(메모리, 동시성, 자료구조, 렌더링)까지 내려가 다시 설계한 최적화.
+    case advanced = 2
 
     public var id: Int { rawValue }
 
@@ -13,7 +13,7 @@ public enum Stage: Int, CaseIterable, Codable, Hashable, Sendable, Identifiable,
         switch self {
         case .naive: "Naive"
         case .optimized: "Optimized"
-        case .lowLevel: "Low-level"
+        case .advanced: "Advanced"
         }
     }
 

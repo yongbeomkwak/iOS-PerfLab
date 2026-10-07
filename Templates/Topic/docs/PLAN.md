@@ -42,11 +42,13 @@ TODO: `context.isBenchmark`일 때 사용자 입력 없이 시나리오를 어�
 
 ## Stage 전략
 
-| Stage | 전략 | 핵심 개념 | 기대 효과 |
-|---|---|---|---|
-| S0 Naive | TODO: | | 기준점 |
-| S1 Optimized | TODO: | | |
-| S2 Low-level | TODO: | | |
+| Stage | 전략 | 축 | 핵심 개념 | 기대 효과 | 대가 |
+|---|---|---|---|---|---|
+| S0 Naive | TODO: | - | | 기준점 | - |
+| S1 Optimized | TODO: | | | | |
+| S2 Advanced | TODO: | | | | |
+
+축: 자료구조와 알고리즘, 값 타입과 참조 타입, 메모리, 동시성, 구조, 렌더링, I/O (`docs/GUIDE.md` 3절)
 
 ## 정합성 기준
 

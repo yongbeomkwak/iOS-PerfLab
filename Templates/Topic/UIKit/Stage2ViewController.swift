@@ -7,6 +7,6 @@ final class Stage2ViewController: NotImplementedViewController {
 
     init(context: TopicContext) {
         self.context = context
-        super.init(stage: .lowLevel)
+        super.init(stage: .advanced)
     }
 }

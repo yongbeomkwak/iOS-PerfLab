@@ -1,6 +1,6 @@
 # iOS-PerfLab
 
-> 실제 앱에서 마주치는 성능 문제를 **Naive → Optimized → Low-level** 단계로 직접 구현하고,
+> 실제 앱에서 마주치는 성능 문제를 **Naive → Optimized → Advanced** 단계로 직접 구현하고,
 > **측정하고, 기록하는** iOS 성능 실험실 (UIKit / SwiftUI)
 
 <br>
@@ -43,8 +43,10 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 | 단계 | 이름 | 설명 |
 |:---:|---|---|
 | **Stage 0** | Naive | 성능을 신경 쓰지 않고 가장 직관적으로 구현한 기준점 (일부러 느리게 만들지 않는다) |
-| **Stage 1** | Optimized | 프레임워크 수준에서 할 수 있는 최적화 (재사용, 캐싱, 비동기 처리, diff 등) |
-| **Stage 2** | Low-level | CoreGraphics, CoreAnimation, Metal, GCD/Thread, 메모리 레이아웃 등 저수준 API까지 내려간 최적화 |
+| **Stage 1** | Optimized | 병목을 알면 바로 떠올리는 관용적인 처방 (재사용, 캐싱, 메인 스레드에서 작업 옮기기, diff 등) |
+| **Stage 2** | Advanced | 비용이 **왜** 생기는지까지 내려가 다시 설계한 최적화 (자료구조, 값/참조 타입, 메모리 할당, 동시성 모델, 구조, 저수준 API 등) |
+
+- 최적화는 저수준 API만 뜻하지 않는다. 동시성 개선, 구조 개선, `class` ↔ `struct` 전환처럼 **CS 지식 전반**을 쓴다. 축 목록은 [진행 가이드 3절](docs/GUIDE.md#최적화의-범위)에 있다.
 
 - 모든 Stage는 같은 `Scenario`(고정 seed) 입력을 쓰고, 결과가 같은지 테스트로 검증한다.
 - 가능한 경우 **UIKit / SwiftUI 두 가지 버전**을 모두 구현해 프레임워크별 차이도 비교한다.
@@ -163,6 +165,8 @@ scripts/perflab build | format | lint
 - 대용량 JSON 파싱과 메인 스레드 블로킹 — `Codable` `Concurrency` `Memory`
 - 그림판 앱에서 실시간 드로잉 지연 줄이기 — `CoreGraphics` `Metal` `Touch`
 - 주식 앱의 실시간 차트를 부드럽게 그리려면? — `CoreGraphics` `CALayer` `Thread`
+- 수만 개 모델을 매 초 갱신하는 대시보드에서 `class` 모델이 느린 이유 — `ARC` `struct` `Copy-on-Write`
+- 검색어마다 쏟아지는 필터링 작업이 서로 발목을 잡을 때 — `Actor` `Task` `Cancellation`
 
 <br>
 

@@ -1,6 +1,6 @@
 # iOS-PerfLab
 
-실제 앱에서 마주치는 성능 문제를 **Naive → Optimized → Low-level** 단계로 구현하고, 측정하고, 기록하는 iOS 성능 실험실.
+실제 앱에서 마주치는 성능 문제를 **Naive → Optimized → Advanced** 단계로 구현하고, 측정하고, 기록하는 iOS 성능 실험실.
 구현은 Claude가 맡고, 사용자는 각 단계의 **체크포인트**에서 예측하고, 질문하고, 이해를 확인하며 학습한다.
 
 - 사람용 진행 가이드: `docs/GUIDE.md` (파이프라인, 역할, 측정 해석)
@@ -15,6 +15,7 @@
 4. **측정 없는 결론은 없다.** 수치는 `results/*.json`에서만 인용하고, 추정치를 사실처럼 쓰지 않는다.
 5. **First-party only.** 서드파티 라이브러리를 추가하지 않는다. UI는 시스템 컴포넌트를 쓴다.
 6. **코드를 바꾸면 `scripts/perflab format`과 `scripts/perflab lint`를 통과시킨다.**
+7. **최적화는 저수준 API만이 아니다.** 자료구조, 값/참조 타입(`class` ↔ `struct`), 메모리, 동시성, 구조 개선 등 CS 지식 전반을 쓴다 (`docs/GUIDE.md` 3절).
 
 ## 파이프라인
 

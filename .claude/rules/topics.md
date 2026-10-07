@@ -12,7 +12,9 @@ paths:
 - **Stage N+1은 Stage N에서 출발한다.** 무엇을 바꿨는지 설명할 수 있어야 하고, 한 Stage에 서로 무관한 최적화를 섞지 않는다.
 - **결과(출력)는 모든 Stage에서 같아야 한다.** 화면에 보이는 결과나 계산 결과가 같다는 것을 `Tests/`의 정합성 테스트로 검증한다.
 - UIKit과 SwiftUI는 같은 Stage에서 같은 전략을 쓴다. 프레임워크 특성상 불가능하면 PLAN.md에 이유를 적는다.
-  SwiftUI Stage 2에서 `UIViewRepresentable`로 저수준 API를 감싸는 것은 허용하되, 그 사실을 문서에 명시한다.
+  SwiftUI Stage에서 `UIViewRepresentable`로 UIKit이나 저수준 API를 감싸는 것은 허용하되, 그 사실을 문서에 명시한다.
+- **최적화는 저수준 API에 한정하지 않는다.** 자료구조, 값/참조 타입, 메모리, 동시성, 구조, 렌더링, I/O 중
+  병목의 원인에 맞는 축을 고른다 (`docs/GUIDE.md` 3절). 저수준 API는 그 원인이 렌더링이나 시스템 호출에 있을 때 쓴다.
 
 ## Benchmark 모드
 

@@ -46,7 +46,7 @@ CATEGORIES = {
     "dataIO": ("DataIO", "Data & I/O"),
 }
 STATUSES = ["proposed", "planned", "stage0", "stage1", "stage2", "measured", "summarized", "archived"]
-STAGE_TITLES = {0: "Naive", 1: "Optimized", 2: "Low-level"}
+STAGE_TITLES = {0: "Naive", 1: "Optimized", 2: "Advanced"}
 FRAMEWORK_TITLES = {"uikit": "UIKit", "swiftui": "SwiftUI"}
 NOT_IMPLEMENTED = "PERFLAB: NOT_IMPLEMENTED"
 TODO = "TODO:"

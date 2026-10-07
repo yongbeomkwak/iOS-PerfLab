@@ -28,7 +28,7 @@ struct TopicMetadataTests {
             """
         let metadata = try JSONDecoder().decode(TopicMetadata.self, from: Data(json.utf8))
         #expect(metadata.category == .rendering)
-        #expect(metadata.stages == [.naive, .optimized, .lowLevel])
+        #expect(metadata.stages == [.naive, .optimized, .advanced])
         #expect(metadata.status < .archived)
     }
 }

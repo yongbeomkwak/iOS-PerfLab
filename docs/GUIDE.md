@@ -19,7 +19,7 @@ flowchart LR
     P[proposed<br/>주제 선정] --> PL[planned<br/>실험 설계]
     PL --> S0[stage0<br/>Naive]
     S0 --> S1[stage1<br/>Optimized]
-    S1 --> S2[stage2<br/>Low-level]
+    S1 --> S2[stage2<br/>Advanced]
     S2 --> M[measured<br/>측정]
     M --> SU[summarized<br/>정리]
     SU --> A[archived<br/>아카이빙]
@@ -51,6 +51,29 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 | **measured** | ① 결과 보기 전 수치 예측 ② 예측과 다른 이유 함께 추론 | Release 자동 측정, 결과표, 분석 | `results/`, `docs/RESULTS.md` | 한 기기에서 모든 조합과 baseline 결과, LEARNING `[Measure]` |
 | **summarized** | 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글 작성 | `docs/SUMMARY.md` | TODO 없음 |
 | **archived** | 회고: 파이프라인에서 바꾸고 싶은 점 | README 표 갱신 | README | README에 등록 |
+
+### 최적화의 범위
+
+최적화는 CoreGraphics나 Metal 같은 저수준 API만 뜻하지 않는다. **비용이 어디서 생기는지 알고, 그 비용을 줄이도록 바꾸는 것** 전부가 최적화다.
+
+| Stage | 기준 | 예 |
+|---|---|---|
+| Stage 1 · Optimized | 병목을 알면 바로 떠올리는 **관용적인 처방** | 셀 재사용, 캐싱, 무거운 작업을 메인 스레드 밖으로, diff 적용 |
+| Stage 2 · Advanced | 비용이 **왜** 생기는지까지 내려가 **다시 설계**한 처방 | 아래 축 중 Stage 1이 건드리지 않은 근본 원인 |
+
+| 축 | 다루는 질문 | 예 |
+|---|---|---|
+| 자료구조와 알고리즘 | 연산 횟수와 복잡도가 적절한가 | O(n²) 탐색을 딕셔너리로, 정렬 유지 삽입, 증분 계산 |
+| 값 타입과 참조 타입 | 복사, 참조 카운팅(ARC), 동적 디스패치 비용 | `class` → `struct`(ARC 제거), 큰 `struct` → `class`(복사 제거), copy-on-write, `final` |
+| 메모리 | 할당 횟수, 크기, 수명 | 버퍼 재사용, 다운샘플링, `autoreleasepool`, 연속 메모리 배치 |
+| 동시성 | 어느 스레드에서, 얼마나 잘게, 얼마나 기다리며 | 메인 스레드 분리, actor 경합 줄이기, 작업 단위 조절, 취소, 우선순위 |
+| 구조 | 변경이 얼마나 넓게 퍼지는가 | 상태 범위 좁히기, SwiftUI 무효화 범위 줄이기, 뷰 계층 평탄화, 배치 갱신 |
+| 렌더링 | GPU와 렌더 서버가 하는 일 | 오프스크린 렌더링 제거, 레이어 합성, CoreGraphics, CoreAnimation, Metal |
+| I/O | 읽고 쓰는 양과 시점 | 일괄 처리, 스트리밍, 지연 로딩 |
+
+- PLAN.md의 Stage 전략에는 **어느 축의 어떤 CS 개념**을 쓰는지 적는다.
+- 최적화는 대가가 있다. `struct`가 항상 빠른 것도, 동시성이 항상 빠른 것도 아니다. 예상과 다르게 느려지는 경우도 측정해 기록할 가치가 있다.
+- 주제마다 Stage 2의 축이 한쪽(예: 렌더링)에만 몰리지 않게 고른다.
 
 각 단계가 끝날 때 Claude가 커밋할지 묻는다. 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문은 [COMMITS](COMMITS.md)를 따른다.
 
