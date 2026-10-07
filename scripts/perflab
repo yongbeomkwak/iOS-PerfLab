@@ -13,6 +13,9 @@ Claude(skill)와 사람이 같은 명령을 사용하므로 파이프라인이 �
     scripts/perflab table TOPIC
     scripts/perflab readme
     scripts/perflab devices
+    scripts/perflab build [--device NAME]
+    scripts/perflab format [PATH ...]
+    scripts/perflab lint [PATH ...]
 """
 
 import argparse
@@ -46,6 +49,8 @@ STAGE_TITLES = {0: "Naive", 1: "Optimized", 2: "Low-level"}
 FRAMEWORK_TITLES = {"uikit": "UIKit", "swiftui": "SwiftUI"}
 NOT_IMPLEMENTED = "PERFLAB: NOT_IMPLEMENTED"
 TODO = "TODO:"
+STRATEGY_HEADER = "// 전략:"
+CHANGE_HEADER = "// 변경:"
 
 RESULTS_START = "<!-- perflab:results:start -->"
 RESULTS_END = "<!-- perflab:results:end -->"
@@ -176,21 +181,30 @@ def cmd_new(args):
             file.write_text(text)
 
     # Package.swift / TopicCatalog 등록
-    package = PACKAGE_SWIFT.read_text()
-    entry = '    TopicModule(name: "%s", path: "%s/%s"),\n    // @perflab:topics' % (module, folder, topic_id)
-    PACKAGE_SWIFT.write_text(package.replace("    // @perflab:topics", entry, 1))
-
-    catalog = CATALOG.read_text()
-    catalog = catalog.replace("// @perflab:imports", "import %s\n// @perflab:imports" % module, 1)
-    catalog = catalog.replace(
-        "        // @perflab:entries",
-        "        %s(),\n        // @perflab:entries" % replacements["__TYPE__"],
-        1,
-    )
-    CATALOG.write_text(catalog)
+    entry = 'TopicModule(name: "%s", path: "%s/%s")' % (module, folder, topic_id)
+    PACKAGE_SWIFT.write_text(insert_list_entry(PACKAGE_SWIFT.read_text(), "// @perflab:topics", entry))
+    catalog = CATALOG.read_text().replace("// @perflab:imports", "import %s\n// @perflab:imports" % module, 1)
+    CATALOG.write_text(insert_list_entry(catalog, "// @perflab:entries", "%s()" % replacements["__TYPE__"]))
+    # swift-format이 원소 1개짜리 배열의 쉼표를 지우므로, 등록 후 두 파일을 다시 정리한다.
+    run(["xcrun", "swift-format", "format", "--in-place", str(PACKAGE_SWIFT), str(CATALOG)])
 
     print("✔ 생성: %s (%s)" % (destination.relative_to(ROOT), module))
     print("  다음 단계: docs/PLAN.md 작성 후 `scripts/perflab advance %s`" % topic_id)
+
+
+def insert_list_entry(text, marker, entry):
+    """배열 안의 `marker` 주석 줄 바로 위에 `entry`를 추가한다. 이전 원소에 쉼표가 없으면 붙인다."""
+    lines = text.split("\n")
+    index = next(i for i, line in enumerate(lines) if line.strip() == marker)
+    indent = lines[index][: len(lines[index]) - len(lines[index].lstrip())]
+    previous = index - 1
+    while previous >= 0 and not lines[previous].strip():
+        previous -= 1
+    last = lines[previous].rstrip()
+    if not last.endswith(("[", ",")) and not last.lstrip().startswith("//"):
+        lines[previous] = last + ","
+    lines.insert(index, "%s%s," % (indent, entry))
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +224,15 @@ def check_learning(topic, tag, errors):
     text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
     if not re.search(r"^### \[%s\]" % re.escape(tag), text, re.MULTILINE):
         errors.append("LEARNING.md에 `### [%s]` 체크포인트 기록이 없음" % tag)
+
+
+def check_stage_header(topic, stage, path, errors):
+    """Stage 파일 상단의 전략 주석 (docs/CONVENTIONS.md "Stage 파일 머리말")."""
+    lines = path.read_text().splitlines()
+    if not any(line.startswith(STRATEGY_HEADER) for line in lines):
+        errors.append("%s에 `%s` 머리말이 없음" % (path.relative_to(topic.path), STRATEGY_HEADER))
+    if stage != topic.stages[0] and not any(line.startswith(CHANGE_HEADER) for line in lines):
+        errors.append("%s에 `%s` 머리말이 없음" % (path.relative_to(topic.path), CHANGE_HEADER))
 
 
 def stage_files(topic, stage):
@@ -270,7 +293,14 @@ def validate(topic, status):
                 errors.append("%s 없음" % path.relative_to(topic.path))
             elif NOT_IMPLEMENTED in path.read_text():
                 errors.append("%s가 아직 NOT_IMPLEMENTED" % path.relative_to(topic.path))
+            else:
+                check_stage_header(topic, stage, path, errors)
         check_learning(topic, "Stage %d" % stage, errors)
+
+    if any("stage%d" % s in reached for s in topic.stages):
+        lint_errors = swift_format_lint([topic.path])
+        if lint_errors:
+            errors.append("swift-format lint 위반 %d건 (`scripts/perflab format %s`)" % (len(lint_errors), topic.relpath))
 
     if "measured" in reached:
         expected = expected_results(topic)
@@ -551,6 +581,66 @@ def cmd_devices(args):
 
 
 # ---------------------------------------------------------------------------
+# build / format / lint
+
+
+def cmd_build(args):
+    destination = destination_for(args.device)
+    cmd = ["xcodebuild", "build", "-project", str(PROJECT), "-scheme", "PerfLab", "-destination", destination, "-quiet"]
+    print("$ " + " ".join(cmd))
+    if subprocess.run(cmd, cwd=ROOT).returncode != 0:
+        fail("빌드 실패")
+
+    # 앱 스킴 빌드는 로컬 패키지의 컴파일러 경고를 숨긴다. 패키지 스킴으로 따로 빌드해 경고를 확인한다.
+    warnings = []
+    for package, scheme in ((ROOT / "Packages" / "Shared", "Shared"), (TOPICS_PACKAGE, topics_scheme())):
+        result = subprocess.run(["xcodebuild", "build", "-scheme", scheme, "-destination", destination],
+                                cwd=package, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(result.stdout[-3000:])
+            fail("%s 패키지 빌드 실패" % scheme)
+        warnings += sorted({line.replace(str(ROOT) + "/", "") for line in result.stdout.splitlines()
+                            if re.search(r"\.swift:\d+:\d+: warning:", line)})
+    for line in warnings:
+        print(line)
+    if warnings:
+        fail("컴파일러 경고 %d건. 경고 0건을 유지한다." % len(warnings))
+    print("✔ 빌드 성공 (경고 0건)")
+
+
+def swift_files(paths):
+    """git이 추적하거나 무시하지 않는 Swift 파일 (.build 등 산출물 제외)."""
+    targets = [str(Path(p).resolve().relative_to(ROOT)) for p in paths] if paths else []
+    output = subprocess.run(["git", "ls-files", "-co", "--exclude-standard", "--", *targets],
+                            cwd=ROOT, capture_output=True, text=True).stdout
+    return [ROOT / line for line in output.splitlines() if line.endswith(".swift") and (ROOT / line).exists()]
+
+
+def swift_format_lint(paths):
+    files = swift_files(paths)
+    if not files:
+        return []
+    result = subprocess.run(["xcrun", "swift-format", "lint", *map(str, files)], cwd=ROOT,
+                            capture_output=True, text=True)
+    return [line for line in result.stderr.splitlines() if ": warning: " in line or ": error: " in line]
+
+
+def cmd_format(args):
+    files = swift_files(args.paths)
+    run(["xcrun", "swift-format", "format", "--in-place", *map(str, files)])
+    print("✔ %d개 파일 포맷" % len(files))
+
+
+def cmd_lint(args):
+    errors = swift_format_lint(args.paths)
+    for line in errors:
+        print(line.replace(str(ROOT) + "/", ""))
+    if errors:
+        fail("swift-format lint 위반 %d건 (`scripts/perflab format`으로 자동 수정)" % len(errors))
+    print("✔ lint 통과")
+
+
+# ---------------------------------------------------------------------------
 
 
 def main():
@@ -600,7 +690,20 @@ def main():
     p = sub.add_parser("devices", help="측정 가능한 기기 목록")
     p.set_defaults(func=cmd_devices)
 
+    p = sub.add_parser("build", help="앱 빌드 (기본: %s 시뮬레이터)" % DEFAULT_SIMULATOR)
+    p.add_argument("--device")
+    p.set_defaults(func=cmd_build)
+
+    p = sub.add_parser("format", help="swift-format으로 코드 정리 (기본: 레포 전체)")
+    p.add_argument("paths", nargs="*")
+    p.set_defaults(func=cmd_format)
+
+    p = sub.add_parser("lint", help="swift-format 규칙 검사 (기본: 레포 전체)")
+    p.add_argument("paths", nargs="*")
+    p.set_defaults(func=cmd_lint)
+
     args = parser.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)
     args.func(args)
 
 
