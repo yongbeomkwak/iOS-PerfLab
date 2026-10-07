@@ -1,0 +1,22 @@
+
+# <type>(<scope>): <무엇을 위해 무엇을 했는지 한 줄>   ← 한국어, 50자 안팎, "왜"가 드러나게
+#   type: feat | fix | refactor | build(설정) | style | test | docs | chore
+#   scope: app | shared | topics | cli | claude | docs
+#   주제 단계: [#NN] <status>: <요약>
+#
+# 왜:
+# - 무엇이 문제였고 어떻게 알았나
+#
+# 설정:                          ← build 커밋 필수
+# - KEY (위치): 이전 → 이후
+#   - 무엇: 이 설정이 무엇인지, 기본값, 켜고 끄면 달라지는 것
+#   - 왜: 이 값으로 정한 이유
+#
+# 변경:                          ← 코드 변경
+# - 무엇을 바꿨나
+#   - <API/개념>: 한 줄 설명
+#
+# 확인:
+# - 빌드/테스트/측정으로 어떻게 검증했나
+#
+# 자세한 규칙: docs/COMMITS.md
