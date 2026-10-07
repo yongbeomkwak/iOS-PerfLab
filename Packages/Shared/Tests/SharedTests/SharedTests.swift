@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import Shared
 
 struct SeededRandomNumberGeneratorTests {
@@ -19,12 +20,12 @@ struct SeededRandomNumberGeneratorTests {
 struct TopicMetadataTests {
     @Test func decodesTopicJSON() throws {
         let json = """
-        {
-          "id": "01-sample", "number": 1, "title": "Sample", "summary": "summary",
-          "category": "rendering", "tags": ["CoreGraphics"], "status": "proposed",
-          "stages": [0, 1, 2], "frameworks": ["uikit", "swiftui"]
-        }
-        """
+            {
+              "id": "01-sample", "number": 1, "title": "Sample", "summary": "summary",
+              "category": "rendering", "tags": ["CoreGraphics"], "status": "proposed",
+              "stages": [0, 1, 2], "frameworks": ["uikit", "swiftui"]
+            }
+            """
         let metadata = try JSONDecoder().decode(TopicMetadata.self, from: Data(json.utf8))
         #expect(metadata.category == .rendering)
         #expect(metadata.stages == [.naive, .optimized, .lowLevel])

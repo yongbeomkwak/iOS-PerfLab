@@ -1,5 +1,6 @@
 import Shared
 import Testing
+
 @testable import __MODULE__
 
 struct ScenarioTests {

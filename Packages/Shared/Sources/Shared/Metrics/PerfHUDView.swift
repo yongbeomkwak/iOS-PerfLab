@@ -11,7 +11,9 @@ public struct PerfHUDView: View {
     public var body: some View {
         let sample = monitor.current
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 2) {
-            row("FPS", String(format: "%.0f / %d", sample.fps, monitor.maximumFPS), warning: sample.fps < Double(monitor.maximumFPS) * 0.9)
+            row(
+                "FPS", String(format: "%.0f / %d", sample.fps, monitor.maximumFPS),
+                warning: sample.fps < Double(monitor.maximumFPS) * 0.9)
             row("Hitch", "\(monitor.hitchCount)", warning: monitor.hitchCount > 0)
             row("CPU", String(format: "%.0f%%", sample.cpuPercent), warning: sample.cpuPercent > 80)
             row("MEM", String(format: "%.1f MB", sample.memoryMB), warning: false)

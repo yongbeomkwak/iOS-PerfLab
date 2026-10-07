@@ -19,31 +19,32 @@ let package = Package(
     name: "Topics",
     platforms: [.iOS(.v17)],
     products: [
-        .library(name: "TopicCatalog", targets: ["TopicCatalog"]),
+        .library(name: "TopicCatalog", targets: ["TopicCatalog"])
     ],
     dependencies: [
-        .package(path: "../Shared"),
+        .package(path: "../Shared")
     ],
     targets: [
         .target(
             name: "TopicCatalog",
             dependencies: [shared] + topics.map { .target(name: $0.name) },
             path: "Catalog"
-        ),
-    ] + topics.flatMap { topic -> [Target] in
-        [
-            .target(
-                name: topic.name,
-                dependencies: [shared],
-                path: topic.path,
-                exclude: ["Tests", "docs", "results"],
-                resources: [.copy("topic.json")]
-            ),
-            .testTarget(
-                name: "\(topic.name)Tests",
-                dependencies: [.target(name: topic.name), shared],
-                path: "\(topic.path)/Tests"
-            ),
-        ]
-    }
+        )
+    ]
+        + topics.flatMap { topic -> [Target] in
+            [
+                .target(
+                    name: topic.name,
+                    dependencies: [shared],
+                    path: topic.path,
+                    exclude: ["Tests", "docs", "results"],
+                    resources: [.copy("topic.json")]
+                ),
+                .testTarget(
+                    name: "\(topic.name)Tests",
+                    dependencies: [.target(name: topic.name), shared],
+                    path: "\(topic.path)/Tests"
+                ),
+            ]
+        }
 )
