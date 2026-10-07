@@ -12,7 +12,7 @@
 1. **모든 주제는 같은 파이프라인을 따른다.** 주제 작업은 반드시 `/perflab` skill로 진행한다.
 2. **상태 전환은 `scripts/perflab advance`로만 한다.** `topic.json`의 `status`를 직접 수정하지 않는다.
 3. **체크포인트를 건너뛰지 않는다.** 사용자 답을 받기 전에는 다음 작업으로 넘어가지 않는다.
-4. **측정 없는 결론은 없다.** 수치는 `results/*.json`에서만 인용하고, 추정치를 사실처럼 쓰지 않는다.
+4. **측정 없는 결론은 없다.** 수치는 `results/*.json`에서만 인용하고, 추정치를 사실처럼 쓰지 않는다. 최적화의 **대가도 지표로 잰다** (PLAN.md "대가 지표").
 5. **First-party only.** 서드파티 라이브러리를 추가하지 않는다. UI는 시스템 컴포넌트를 쓴다.
 6. **코드를 바꾸면 `scripts/perflab format`과 `scripts/perflab lint`를 통과시킨다.**
 7. **최적화는 저수준 API만이 아니다.** 자료구조, 값/참조 타입(`class` ↔ `struct`), 메모리, 동시성, 구조 개선 등 CS 지식 전반을 쓴다 (`docs/GUIDE.md` 3절).
@@ -27,9 +27,9 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 | 상태 | 완료 조건 (`scripts/perflab validate`가 검사) |
 |---|---|
 | proposed | `topic.json` 작성, Package.swift / TopicCatalog 등록 |
-| planned | `docs/PLAN.md`, `Scenario.swift`에 TODO 없음, LEARNING `[Plan]` |
+| planned | `docs/PLAN.md`, `Scenario.swift`에 TODO 없음, Stage마다 대가 지표 정의, LEARNING `[Plan]` |
 | stageN | Stage N의 UIKit/SwiftUI 파일에 `PERFLAB: NOT_IMPLEMENTED` 없음, `// 전략:`(+ 첫 Stage 이후 `// 변경:`) 머리말, 주제 폴더 lint 통과, LEARNING `[Stage N]` |
-| measured | 한 기기에서 모든 Stage×Framework + baseline 결과 JSON, RESULTS.md 완성, LEARNING `[Measure]` |
+| measured | 한 기기에서 모든 Stage×Framework + baseline 결과 JSON, 모든 Stage에 대가 지표 기록, RESULTS.md 완성, LEARNING `[Measure]` |
 | summarized | `docs/SUMMARY.md`에 TODO 없음 |
 | archived | README Topics 표에 등록 |
 

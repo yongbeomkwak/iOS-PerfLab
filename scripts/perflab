@@ -65,6 +65,10 @@ SPREAD_FLOOR = {
 
 RESULTS_START = "<!-- perflab:results:start -->"
 RESULTS_END = "<!-- perflab:results:end -->"
+# PLAN.md "대가 지표"에 쓸 수 있는 공통 지표 이름. 나머지는 PLAN.md 커스텀 지표 표에 있어야 한다.
+COMMON_METRICS = {"FPS", "Hitch", "CPU", "Memory", "Threads"}
+COST_COLUMN = "대가"
+COST_METRIC_COLUMN = "대가 지표"
 README_START = "<!-- perflab:topics:start -->"
 README_END = "<!-- perflab:topics:end -->"
 
@@ -230,6 +234,70 @@ def check_docs_filled(topic, name, errors):
         errors.append("%s에 TODO가 남아 있음" % name)
 
 
+def markdown_tables(text):
+    """마크다운 표마다 (머리 행 셀 목록, [본문 행 셀 목록])을 돌려준다."""
+    tables, rows = [], []
+    for line in text.splitlines() + [""]:
+        if line.startswith("|"):
+            rows.append([cell.strip() for cell in line.strip().strip("|").split("|")])
+            continue
+        if len(rows) >= 2:
+            tables.append((rows[0], [r for r in rows[2:] if len(r) == len(rows[0])]))
+        rows = []
+    return tables
+
+
+def plan_cost_metrics(topic):
+    """PLAN.md Stage 전략 표에서 Stage별 대가 지표 이름과, 커스텀 지표 이름 목록을 읽는다.
+
+    반환: ({"S1": ["searchMemory", "CPU"]...} 또는 None, {커스텀 지표 이름}, [오류])
+    """
+    path = topic.doc("PLAN.md")
+    text = path.read_text() if path.exists() else ""
+    custom, costs, errors = set(), None, []
+    for header, rows in markdown_tables(text):
+        if header[:2] == ["이름", "단위"]:
+            custom |= {name for row in rows for name in re.findall(r"`([^`]+)`", row[0])}
+        if COST_METRIC_COLUMN in header and COST_COLUMN in header:
+            costs = {}
+            cost_index, metric_index = header.index(COST_COLUMN), header.index(COST_METRIC_COLUMN)
+            for position, row in enumerate(rows):
+                stage = row[0].split()[0]
+                if row[cost_index] in ("", "-"):
+                    # 첫 Stage는 기준점이라 대가가 없다. 그 뒤 Stage의 최적화에는 항상 대가가 있다.
+                    if position > 0:
+                        errors.append("PLAN.md %s의 대가가 비어 있음" % stage)
+                    continue
+                names = re.findall(r"`([^`]+)`", row[metric_index])
+                if not names and "정성:" not in row[metric_index]:
+                    errors.append("PLAN.md %s의 대가를 확인할 지표가 없음 (`%s` 열)" % (stage, COST_METRIC_COLUMN))
+                costs[stage] = names
+    if costs is None:
+        errors.append("PLAN.md Stage 전략 표에 `%s`, `%s` 열이 없음" % (COST_COLUMN, COST_METRIC_COLUMN))
+        return {}, custom, errors
+    for stage, names in costs.items():
+        unknown = [n for n in names if n not in custom | COMMON_METRICS]
+        if unknown:
+            errors.append(
+                "PLAN.md %s 대가 지표 %s가 커스텀 지표 표나 공통 지표(%s)에 없음"
+                % (stage, ", ".join(unknown), ", ".join(sorted(COMMON_METRICS)))
+            )
+    return costs, custom, errors
+
+
+def check_cost_results(topic, device, errors):
+    """대가 지표로 쓴 커스텀 지표를 모든 Stage가 기록했는지 본다. 없으면 Stage 간 비교가 안 된다."""
+    costs, custom, _ = plan_cost_metrics(topic)
+    names = {n for ns in costs.values() for n in ns} & custom
+    for s in topic.stages:
+        for f in topic.frameworks:
+            path = topic.path / "results" / device / ("stage%d-%s.json" % (s, f))
+            recorded = {m["name"] for m in json.loads(path.read_text()).get("customMetrics", [])}
+            missing = sorted(names - recorded)
+            if missing:
+                errors.append("%s에 대가 지표 %s 기록이 없음 (해당 구조가 없는 Stage도 0을 기록)" % (path.name, ", ".join(missing)))
+
+
 def check_learning(topic, tag, errors):
     text = topic.doc("LEARNING.md").read_text() if topic.doc("LEARNING.md").exists() else ""
     text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
@@ -290,6 +358,7 @@ def validate(topic, status):
 
     if "planned" in reached:
         check_docs_filled(topic, "PLAN.md", errors)
+        errors.extend(plan_cost_metrics(topic)[2])
         if TODO in (topic.path / "Scenario.swift").read_text():
             errors.append("Scenario.swift에 TODO가 남아 있음")
         check_learning(topic, "Plan", errors)
@@ -318,6 +387,8 @@ def validate(topic, status):
         complete = [d for d, files in result_sets(topic).items() if expected <= files]
         if not complete:
             errors.append("results/<device>/에 모든 Stage×Framework 결과가 있는 기기가 없음 (필요: %s)" % ", ".join(sorted(expected)))
+        for device in complete:
+            check_cost_results(topic, device, errors)
         results = topic.doc("RESULTS.md").read_text() if topic.doc("RESULTS.md").exists() else ""
         if "scripts/perflab table" in results.split(RESULTS_START)[-1].split(RESULTS_END)[0]:
             errors.append("RESULTS.md 결과표가 생성되지 않음 (`scripts/perflab table %s`)" % topic.id)
