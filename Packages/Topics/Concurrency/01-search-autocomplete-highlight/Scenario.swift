@@ -18,6 +18,9 @@ enum Scenario {
 
     // MARK: - Products
 
+    /// 모든 Stage가 같은 배열을 쓴다. SwiftUI 뷰처럼 자주 다시 만들어지는 곳에서도 한 번만 생성되도록 static으로 둔다.
+    static let products = makeProducts()
+
     /// 이름은 `브랜드 + 수식어 1~3개 + 품목 + (모델명)`이다.
     ///
     /// 영문(ASCII)과 완성형 한글만 쓴다. 이 범위에서는 `lowercased()`가 UTF-16 길이를 바꾸지 않아
