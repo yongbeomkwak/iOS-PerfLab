@@ -31,10 +31,25 @@ public struct TopicContext {
     /// 주제별 커스텀 지표(예: 파싱 시간)를 측정 결과에 기록한다.
     public let metrics: CustomMetricRecorder
 
+    private let nextFrame: (@escaping @MainActor (CFTimeInterval) -> Void) -> Void
+
     public var isBenchmark: Bool { mode == .benchmark }
 
-    public init(mode: Mode, metrics: CustomMetricRecorder) {
+    /// `nextFrame`는 `PerfMonitor.afterNextFrame(_:)`을 넘긴다. 테스트처럼 화면이 없으면 기본값(아무것도 하지 않음)을 쓴다.
+    public init(
+        mode: Mode,
+        metrics: CustomMetricRecorder,
+        nextFrame: @escaping (@escaping @MainActor (CFTimeInterval) -> Void) -> Void = { _ in }
+    ) {
         self.mode = mode
         self.metrics = metrics
+        self.nextFrame = nextFrame
+    }
+
+    /// 다음 프레임이 화면에 나갈 예정 시각(`CACurrentMediaTime` 기준)을 한 번 알려 준다.
+    ///
+    /// 입력을 처리한 직후 호출하면 "입력 → 화면 반영" 시각을 잴 수 있다. 시각만 전달하므로 측정 비용은 거의 없다.
+    public func afterNextFrame(_ body: @escaping @MainActor (CFTimeInterval) -> Void) {
+        nextFrame(body)
     }
 }

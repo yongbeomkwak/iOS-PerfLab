@@ -43,6 +43,8 @@ public final class PerfMonitor {
     private var windowCPUTime: Double = 0
 
     private var recording: Recording?
+    /// 다음 display link 콜백에서 한 번 부를 클로저들 (`afterNextFrame(_:)`).
+    private var frameWaiters: [@MainActor (CFTimeInterval) -> Void] = []
 
     public init(sampleInterval: CFTimeInterval = 0.5) {
         self.sampleInterval = sampleInterval
@@ -69,6 +71,16 @@ public final class PerfMonitor {
     public func stop() {
         displayLink?.invalidate()
         displayLink = nil
+        frameWaiters = []
+    }
+
+    /// 다음 프레임이 화면에 나갈 예정 시각(`CACurrentMediaTime` 기준)을 한 번 알려 준다.
+    ///
+    /// 메인 스레드 작업 직후에 등록하면, 그 작업과 화면 반영(CA 커밋)이 끝난 뒤의 첫 콜백에서 불린다.
+    /// "입력 → 화면 반영" 지연을 잴 때 쓴다. 렌더 서버(GPU) 단계가 밀린 경우는 포함되지 않는다.
+    public func afterNextFrame(_ body: @escaping @MainActor (CFTimeInterval) -> Void) {
+        guard displayLink != nil else { return }
+        frameWaiters.append(body)
     }
 
     /// Stage나 프레임워크를 바꿀 때 누적 값을 초기화한다.
@@ -110,6 +122,11 @@ public final class PerfMonitor {
         }
         lastTimestamp = link.timestamp
         windowFrames += 1
+        if !frameWaiters.isEmpty {
+            let waiters = frameWaiters
+            frameWaiters = []
+            for waiter in waiters { waiter(link.targetTimestamp) }
+        }
 
         let elapsed = link.timestamp - windowStart
         guard elapsed >= sampleInterval else { return }
