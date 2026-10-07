@@ -73,7 +73,11 @@ public struct TopicContainerView: View {
 
     @ViewBuilder
     private var content: some View {
-        let context = TopicContext(mode: benchmark == nil ? .interactive : .benchmark, metrics: customMetrics)
+        let context = TopicContext(
+            mode: benchmark == nil ? .interactive : .benchmark,
+            metrics: customMetrics,
+            nextFrame: { [monitor] in monitor.afterNextFrame($0) }
+        )
         switch framework {
         case .swiftui:
             topic.makeSwiftUIView(stage: stage, context: context)
