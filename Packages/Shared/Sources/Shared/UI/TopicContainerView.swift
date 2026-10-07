@@ -10,7 +10,7 @@ public struct TopicContainerView: View {
 
     @State private var stage: Stage
     @State private var framework: UIFramework
-    @State private var showsHUD = true
+    @State private var showsHUD: Bool
     @State private var monitor = PerfMonitor()
     @State private var customMetrics = CustomMetricRecorder()
     @State private var benchmarkResult: BenchmarkResult?
@@ -21,6 +21,8 @@ public struct TopicContainerView: View {
         let metadata = topic.metadata
         _stage = State(initialValue: benchmark?.stage ?? metadata.stages.first ?? .naive)
         _framework = State(initialValue: benchmark?.framework ?? metadata.frameworks.first ?? .swiftui)
+        // HUD 갱신 비용이 측정에 섞이지 않도록 자동 측정 중에는 숨긴다.
+        _showsHUD = State(initialValue: benchmark == nil)
     }
 
     public var body: some View {
@@ -52,8 +54,11 @@ public struct TopicContainerView: View {
                     showsHUD.toggle()
                 }
             }
-            .onAppear { monitor.start() }
-            .onDisappear { monitor.stop() }
+            .background {
+                WindowReader { window in
+                    if let window { monitor.start(in: window) } else { monitor.stop() }
+                }
+            }
             .onChange(of: ContentID(stage: stage, framework: framework)) {
                 monitor.reset()
                 customMetrics.reset()
@@ -100,7 +105,7 @@ public struct TopicContainerView: View {
             stage: benchmark.stage,
             framework: benchmark.framework,
             date: .now,
-            environment: .current,
+            environment: .current(maximumFPS: monitor.maximumFPS),
             metrics: metrics,
             customMetrics: customMetrics.snapshot
         )
@@ -112,6 +117,28 @@ public struct TopicContainerView: View {
 private struct ContentID: Hashable {
     let stage: Stage
     let framework: UIFramework
+}
+
+/// 화면이 붙은 `UIWindow`를 전달한다. 화면에서 떨어지면 `nil`을 전달한다.
+private struct WindowReader: UIViewRepresentable {
+    let onChange: (UIWindow?) -> Void
+
+    func makeUIView(context: Context) -> WindowObservingView {
+        let view = WindowObservingView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateUIView(_ uiView: WindowObservingView, context: Context) {}
+
+    final class WindowObservingView: UIView {
+        var onChange: ((UIWindow?) -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onChange?(window)
+        }
+    }
 }
 
 /// UIKit Stage 구현을 SwiftUI 화면에 올리기 위한 래퍼.

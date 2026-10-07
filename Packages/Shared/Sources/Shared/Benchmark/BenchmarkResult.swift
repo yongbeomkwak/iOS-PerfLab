@@ -45,21 +45,23 @@ public struct BenchmarkResult: Codable, Hashable, Sendable {
 
 extension BenchmarkResult.Environment {
     @MainActor
-    static var current: Self {
+    static func current(maximumFPS: Int) -> Self {
         #if targetEnvironment(simulator)
-        let isSimulator = true
-        let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "Simulator"
+            let isSimulator = true
+            let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "Simulator"
         #else
-        let isSimulator = false
-        var systemInfo = utsname()
-        uname(&systemInfo)
-        let model = withUnsafeBytes(of: systemInfo.machine) { String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self) }
+            let isSimulator = false
+            var systemInfo = utsname()
+            uname(&systemInfo)
+            let model = withUnsafeBytes(of: systemInfo.machine) {
+                String(decoding: $0.prefix { $0 != 0 }, as: UTF8.self)
+            }
         #endif
 
         #if DEBUG
-        let configuration = "Debug"
+            let configuration = "Debug"
         #else
-        let configuration = "Release"
+            let configuration = "Release"
         #endif
 
         return Self(
@@ -67,7 +69,7 @@ extension BenchmarkResult.Environment {
             systemVersion: UIDevice.current.systemVersion,
             isSimulator: isSimulator,
             buildConfiguration: configuration,
-            maximumFPS: UIScreen.main.maximumFramesPerSecond
+            maximumFPS: maximumFPS
         )
     }
 }

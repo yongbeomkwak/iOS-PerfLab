@@ -6,12 +6,16 @@ import UIKit
 /// 일정 주기로 샘플링한 성능 지표.
 public struct PerfSample: Codable, Hashable, Sendable {
     public let fps: Double
+    /// 100% = 코어 1개를 완전히 사용.
     public let cpuPercent: Double
     public let memoryMB: Double
     public let threadCount: Int
 }
 
-/// CADisplayLink와 Mach API로 FPS, Hitch, CPU, 메모리, 스레드 수를 실시간 수집한다.
+/// CADisplayLink와 시스템 API로 FPS, Hitch, CPU, 메모리, 스레드 수를 실시간 수집한다.
+///
+/// FPS와 Hitch는 메인 스레드가 display link 콜백을 제때 처리했는지로 판단한다.
+/// 렌더 서버(GPU) 단계의 hitch는 잡히지 않으므로 Instruments의 Animation Hitches로 확인한다.
 @MainActor
 @Observable
 public final class PerfMonitor {
@@ -19,13 +23,15 @@ public final class PerfMonitor {
     public private(set) var current = PerfSample(fps: 0, cpuPercent: 0, memoryMB: 0, threadCount: 0)
     /// 측정 시작 이후 누적 hitch 횟수.
     public private(set) var hitchCount = 0
-    public let maximumFPS = UIScreen.main.maximumFramesPerSecond
+    /// 화면이 붙은 window의 최대 주사율. `start(in:)` 전에는 60으로 가정한다.
+    public private(set) var maximumFPS = 60
 
     private let sampleInterval: CFTimeInterval
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval?
     private var windowStart: CFTimeInterval = 0
     private var windowFrames = 0
+    private var windowCPUTime: Double = 0
 
     private var recording: Recording?
 
@@ -33,10 +39,17 @@ public final class PerfMonitor {
         self.sampleInterval = sampleInterval
     }
 
-    public func start() {
+    /// `window`가 속한 화면의 주사율로 측정을 시작한다.
+    public func start(in window: UIWindow) {
+        maximumFPS = window.windowScene?.screen.maximumFramesPerSecond ?? maximumFPS
         guard displayLink == nil else { return }
-        let link = CADisplayLink(target: DisplayLinkProxy { [weak self] link in self?.tick(link) },
-                                 selector: #selector(DisplayLinkProxy.tick(_:)))
+        let link = CADisplayLink(
+            target: DisplayLinkProxy { [weak self] link in self?.tick(link) },
+            selector: #selector(DisplayLinkProxy.tick(_:))
+        )
+        // 콘텐츠가 멈춰 있어도 최대 주사율로 콜백을 받아야 프레임 누락을 판단할 수 있다.
+        let maximum = Float(maximumFPS)
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: maximum, maximum: maximum, preferred: maximum)
         link.add(to: .main, forMode: .common)
         displayLink = link
         reset()
@@ -52,6 +65,7 @@ public final class PerfMonitor {
         lastTimestamp = nil
         windowFrames = 0
         windowStart = CACurrentMediaTime()
+        windowCPUTime = SystemMetrics.cpuTime()
         hitchCount = 0
     }
 
@@ -87,17 +101,18 @@ public final class PerfMonitor {
         let elapsed = link.timestamp - windowStart
         guard elapsed >= sampleInterval else { return }
 
-        let cpu = SystemMetrics.cpu()
+        let cpuTime = SystemMetrics.cpuTime()
         let sample = PerfSample(
             fps: Double(windowFrames) / elapsed,
-            cpuPercent: cpu.usagePercent,
+            cpuPercent: (cpuTime - windowCPUTime) / elapsed * 100,
             memoryMB: Double(SystemMetrics.memoryFootprint()) / 1_048_576,
-            threadCount: cpu.threadCount
+            threadCount: SystemMetrics.threadCount()
         )
         current = sample
         recording?.samples.append(sample)
         windowFrames = 0
         windowStart = link.timestamp
+        windowCPUTime = cpuTime
     }
 }
 
@@ -115,7 +130,9 @@ private extension PerfMonitor {
 
         func summarize(endTime: CFTimeInterval) -> BenchmarkMetrics {
             let duration = endTime - startTime
-            func average(_ values: [Double]) -> Double { values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count) }
+            func average(_ values: [Double]) -> Double {
+                values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count)
+            }
             return BenchmarkMetrics(
                 durationSeconds: duration,
                 fpsAverage: average(samples.map(\.fps)),
