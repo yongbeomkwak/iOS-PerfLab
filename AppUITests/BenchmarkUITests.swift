@@ -72,8 +72,12 @@ final class BenchmarkUITests: XCTestCase {
             app.launch()
             defer { app.terminate() }
 
+            // 측정이 끝날 때까지 앱에 접근성 질의를 보내지 않는다. waitForExistence는 화면 트리를 반복해서 읽어 오고,
+            // 앱의 메인 스레드가 그 요청을 처리하느라 측정이 밀린다 (행이 많은 UITableView에서 입력 지연 2ms → 856ms).
+            _ = XCTWaiter.wait(for: [XCTestExpectation(description: "measuring")], timeout: warmUp + duration)
+
             let element = app.descendants(matching: .any)[resultIdentifier]
-            XCTAssertTrue(element.waitForExistence(timeout: warmUp + duration + 30), "Benchmark result not found")
+            XCTAssertTrue(element.waitForExistence(timeout: 30), "Benchmark result not found")
             let json = try XCTUnwrap(element.value as? String)
 
             let attachment = XCTAttachment(data: Data(json.utf8), uniformTypeIdentifier: "public.json")
