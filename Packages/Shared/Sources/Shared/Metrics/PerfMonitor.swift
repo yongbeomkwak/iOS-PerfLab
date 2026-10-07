@@ -43,6 +43,11 @@ public final class PerfMonitor {
     private var windowCPUTime: Double = 0
 
     private var recording: Recording?
+    /// `start(in:)`를 부르고 아직 `stop()`하지 않은 화면 수.
+    ///
+    /// Stage나 프레임워크를 바꾸면 SwiftUI가 window를 알려 주는 뷰를 새로 만든다. 새 뷰가 먼저 붙고(start) 옛 뷰가 나중에 떨어지므로(stop),
+    /// 횟수를 세지 않으면 옛 뷰의 stop이 막 시작된 측정을 멈춰 HUD가 굳는다. 마지막 화면이 떨어질 때만 멈춘다.
+    private var activeViews = 0
     /// 다음 display link 콜백에서 한 번 부를 클로저들 (`afterNextFrame(_:)`).
     ///
     /// 하나만 저장하면 tick 전에 부탁이 두 번 올 때 앞의 것을 덮어쓰므로 배열에 쌓는다.
@@ -53,8 +58,11 @@ public final class PerfMonitor {
         self.sampleInterval = sampleInterval
     }
 
-    /// `window`가 속한 화면의 주사율로 측정을 시작한다.
+    /// `window`가 속한 화면의 주사율로 측정을 시작한다. 이미 측정 중이면 그대로 이어 간다.
+    ///
+    /// `stop()`과 짝을 맞춰 부른다.
     public func start(in window: UIWindow) {
+        activeViews += 1
         maximumFPS = window.windowScene?.screen.maximumFramesPerSecond ?? maximumFPS
         guard displayLink == nil else { return }
         let link = CADisplayLink(
@@ -71,7 +79,10 @@ public final class PerfMonitor {
         reset()
     }
 
+    /// `start(in:)`를 부른 화면이 모두 떨어지면 측정을 멈춘다.
     public func stop() {
+        activeViews = max(activeViews - 1, 0)
+        guard activeViews == 0 else { return }
         displayLink?.invalidate()
         displayLink = nil
         frameWaiters = []
