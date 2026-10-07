@@ -7,8 +7,11 @@ import XCTest
 /// - `PERFLAB_STAGES`: `0,1,2`
 /// - `PERFLAB_FRAMEWORKS`: `uikit,swiftui`
 /// - `PERFLAB_DURATION`, `PERFLAB_WARMUP`: 초 단위
+/// - `PERFLAB_REPEAT`: 조합별 반복 횟수
+/// - `PERFLAB_BASELINE`: `1`이면 회차마다 빈 화면(`_baseline`)도 측정한다
 final class BenchmarkUITests: XCTestCase {
     private let resultIdentifier = "perflab.benchmark.result"
+    private let baselineTopicID = "_baseline"
 
     @MainActor
     func testBenchmark() throws {
@@ -20,31 +23,63 @@ final class BenchmarkUITests: XCTestCase {
         let frameworks = (environment["PERFLAB_FRAMEWORKS"] ?? "uikit,swiftui").split(separator: ",").map(String.init)
         let duration = Double(environment["PERFLAB_DURATION"] ?? "") ?? 10
         let warmUp = Double(environment["PERFLAB_WARMUP"] ?? "") ?? 2
+        let repeatCount = Int(environment["PERFLAB_REPEAT"] ?? "") ?? 1
+        let includesBaseline = environment["PERFLAB_BASELINE"] == "1"
 
+        var runs: [(topicID: String, stage: String, framework: String)] = []
+        if includesBaseline {
+            runs.append((baselineTopicID, "0", "swiftui"))
+        }
         for framework in frameworks {
             for stage in stages {
-                try XCTContext.runActivity(named: "Stage \(stage) · \(framework)") { _ in
-                    let app = XCUIApplication()
-                    app.launchArguments = [
-                        "-PerfLabTopic", topicID,
-                        "-PerfLabStage", stage,
-                        "-PerfLabFramework", framework,
-                        "-PerfLabDuration", String(duration),
-                        "-PerfLabWarmUp", String(warmUp),
-                    ]
-                    app.launch()
-                    defer { app.terminate() }
-
-                    let element = app.descendants(matching: .any)[resultIdentifier]
-                    XCTAssertTrue(element.waitForExistence(timeout: warmUp + duration + 30), "Benchmark result not found")
-                    let json = try XCTUnwrap(element.value as? String)
-
-                    let attachment = XCTAttachment(data: Data(json.utf8), uniformTypeIdentifier: "public.json")
-                    attachment.name = "perflab_stage\(stage)-\(framework).json"
-                    attachment.lifetime = .keepAlways
-                    add(attachment)
-                }
+                runs.append((topicID, stage, framework))
             }
+        }
+
+        // 회차 단위로 모든 조합을 한 번씩 돌린다. 발열 같은 시간에 따른 변화가 특정 조합에 몰리지 않게 하기 위해서다.
+        for round in 1...repeatCount {
+            for run in runs {
+                try measure(
+                    topicID: run.topicID,
+                    stage: run.stage,
+                    framework: run.framework,
+                    round: round,
+                    duration: duration,
+                    warmUp: warmUp
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func measure(
+        topicID: String,
+        stage: String,
+        framework: String,
+        round: Int,
+        duration: Double,
+        warmUp: Double
+    ) throws {
+        try XCTContext.runActivity(named: "#\(round) \(topicID) · Stage \(stage) · \(framework)") { _ in
+            let app = XCUIApplication()
+            app.launchArguments = [
+                "-PerfLabTopic", topicID,
+                "-PerfLabStage", stage,
+                "-PerfLabFramework", framework,
+                "-PerfLabDuration", String(duration),
+                "-PerfLabWarmUp", String(warmUp),
+            ]
+            app.launch()
+            defer { app.terminate() }
+
+            let element = app.descendants(matching: .any)[resultIdentifier]
+            XCTAssertTrue(element.waitForExistence(timeout: warmUp + duration + 30), "Benchmark result not found")
+            let json = try XCTUnwrap(element.value as? String)
+
+            let attachment = XCTAttachment(data: Data(json.utf8), uniformTypeIdentifier: "public.json")
+            attachment.name = "perflab_\(topicID)_r\(round)_stage\(stage)-\(framework).json"
+            attachment.lifetime = .keepAlways
+            add(attachment)
         }
     }
 }

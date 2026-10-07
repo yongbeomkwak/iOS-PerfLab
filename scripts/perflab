@@ -9,7 +9,7 @@ Claude(skill)와 사람이 같은 명령을 사용하므로 파이프라인이 �
     scripts/perflab validate TOPIC [--status STATUS]
     scripts/perflab advance TOPIC
     scripts/perflab test TOPIC
-    scripts/perflab measure TOPIC [--device NAME] [--duration SEC]
+    scripts/perflab measure TOPIC [--device NAME] [--repeat N] [--duration SEC]
     scripts/perflab table TOPIC
     scripts/perflab readme
     scripts/perflab devices
@@ -23,6 +23,7 @@ import json
 import os
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -51,6 +52,16 @@ NOT_IMPLEMENTED = "PERFLAB: NOT_IMPLEMENTED"
 TODO = "TODO:"
 STRATEGY_HEADER = "// 전략:"
 CHANGE_HEADER = "// 변경:"
+BASELINE_ID = "_baseline"
+BASELINE_RESULT = "baseline"
+DEFAULT_REPEAT = 3
+# 반복 측정 간 (최대 - 최소) / 중앙값이 이 비율을 넘고, 차이가 지표별 최소값보다 크면 경고한다.
+# 최소값보다 작은 차이(예: CPU 2% vs 3%)는 비율이 커도 노이즈로 본다.
+SPREAD_WARNING = 0.2
+SPREAD_FLOOR = {
+    "fpsAverage": 3, "fpsMinimum": 5, "hitchCount": 3, "hitchTimeRatio": 10,
+    "cpuAverage": 5, "cpuPeak": 10, "memoryAverageMB": 5, "memoryPeakMB": 5, "threadPeak": 3,
+}
 
 RESULTS_START = "<!-- perflab:results:start -->"
 RESULTS_END = "<!-- perflab:results:end -->"
@@ -252,7 +263,7 @@ def result_sets(topic):
 
 
 def expected_results(topic):
-    return {"stage%d-%s" % (s, f) for s in topic.stages for f in topic.frameworks}
+    return {"stage%d-%s" % (s, f) for s in topic.stages for f in topic.frameworks} | {BASELINE_RESULT}
 
 
 def validate(topic, status):
@@ -431,6 +442,13 @@ def cmd_test(args):
 
 def cmd_measure(args):
     topic = find_topic(args.topic)
+    last_stage = "stage%d" % topic.stages[-1]
+    errors = validate(topic, last_stage)
+    if errors and not args.allow_incomplete:
+        print("✘ 모든 Stage 구현이 끝나야 측정할 수 있습니다 (`%s` 조건 미충족)." % last_stage)
+        for e in errors:
+            print("  - " + e)
+        fail("파이프라인 점검용으로 측정만 해 보려면 --allow-incomplete")
     if args.device is None:
         print("⚠ 시뮬레이터 측정은 참고용입니다. 실기기: --device \"<기기 이름>\"")
 
@@ -443,6 +461,8 @@ def cmd_measure(args):
         "TEST_RUNNER_PERFLAB_FRAMEWORKS": ",".join(topic.frameworks),
         "TEST_RUNNER_PERFLAB_DURATION": str(args.duration),
         "TEST_RUNNER_PERFLAB_WARMUP": str(args.warmup),
+        "TEST_RUNNER_PERFLAB_REPEAT": str(args.repeat),
+        "TEST_RUNNER_PERFLAB_BASELINE": "1",
     })
     run(["xcodebuild", "test",
          "-project", str(PROJECT), "-scheme", "PerfLab", "-configuration", "Release",
@@ -453,7 +473,8 @@ def cmd_measure(args):
     exported = work / "attachments"
     run(["xcrun", "xcresulttool", "export", "attachments", "--path", str(bundle), "--output-path", str(exported)])
 
-    saved = []
+    # (기기 폴더, 결과 이름) → 회차별 결과
+    groups = {}
     for file in exported.glob("*.json"):
         if file.name == "manifest.json":
             continue
@@ -461,23 +482,61 @@ def cmd_measure(args):
             result = json.loads(file.read_text())
         except ValueError:
             continue
-        if result.get("topicID") != topic.id:
+        if result.get("topicID") == BASELINE_ID:
+            name = BASELINE_RESULT
+        elif result.get("topicID") == topic.id:
+            name = "stage%d-%s" % (result["stage"], result["framework"])
+        else:
             continue
         env_info = result["environment"]
         device_dir = re.sub(r"[^A-Za-z0-9,._-]", "_", env_info["deviceModel"])
         if env_info["isSimulator"]:
             device_dir += "-simulator"
-        target = topic.path / "results" / device_dir / ("stage%d-%s.json" % (result["stage"], result["framework"]))
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-        saved.append(target.relative_to(ROOT))
+        groups.setdefault((device_dir, name), []).append(result)
 
     shutil.rmtree(work, ignore_errors=True)
-    if not saved:
+    if not groups:
         fail("저장된 결과가 없습니다.")
-    for path in sorted(saved):
-        print("✔ " + str(path))
+
+    for (device_dir, name), runs in sorted(groups.items()):
+        aggregated = aggregate_runs(runs)
+        target = topic.path / "results" / device_dir / ("%s.json" % name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(aggregated, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        print("✔ %s (%d회 중앙값)" % (target.relative_to(ROOT), len(runs)))
+        for warning in spread_warnings(runs):
+            print("  ⚠ %s: %s" % (name, warning))
     print("  다음: `scripts/perflab table %s`" % topic.id)
+
+
+def aggregate_runs(runs):
+    """회차별 결과를 지표별 중앙값으로 합친다. 원본 회차 지표는 `runs`에 남긴다."""
+    runs = sorted(runs, key=lambda r: r["date"])
+    result = dict(runs[-1])
+    result["repeat"] = len(runs)
+    result["runs"] = [r["metrics"] for r in runs]
+    result["metrics"] = {key: statistics.median(r["metrics"][key] for r in runs) for key in runs[0]["metrics"]}
+    custom = {}
+    for r in runs:
+        for m in r["customMetrics"]:
+            custom.setdefault((m["name"], m["unit"]), []).append(m["value"])
+    result["customMetrics"] = [
+        {"name": name, "unit": unit, "value": statistics.median(values)} for (name, unit), values in custom.items()
+    ]
+    return result
+
+
+def spread_warnings(runs):
+    warnings = []
+    if len(runs) < 2:
+        return warnings
+    for title, key, _ in METRIC_ROWS:
+        values = [r["metrics"][key] for r in runs]
+        median = statistics.median(values)
+        spread = max(values) - min(values)
+        if median > 0 and spread / median > SPREAD_WARNING and spread > SPREAD_FLOOR[key]:
+            warnings.append("%s 편차 큼 (%s)" % (title, ", ".join("%.1f" % v for v in values)))
+    return warnings
 
 
 # ---------------------------------------------------------------------------
@@ -508,19 +567,35 @@ def results_markdown(topic):
             results[(r["stage"], r["framework"])] = r
         if not results:
             continue
-        sample = next(iter(results.values()))["environment"]
-        columns = [(s, f) for f in topic.frameworks for s in topic.stages if (s, f) in results]
-        header = "| 지표 | " + " | ".join("%s S%d" % (FRAMEWORK_TITLES[f], s) for s, f in columns) + " |"
+        titles = {}
+        baseline = device / ("%s.json" % BASELINE_RESULT)
+        if baseline.exists():
+            results[BASELINE_RESULT] = json.loads(baseline.read_text())
+            titles[BASELINE_RESULT] = "Baseline"
+        sample = next(iter(results.values()))
+        environment = sample["environment"]
+        stage_columns = [(s, f) for f in topic.frameworks for s in topic.stages if (s, f) in results]
+        titles.update({(s, f): "%s S%d" % (FRAMEWORK_TITLES[f], s) for s, f in stage_columns})
+        columns = ([BASELINE_RESULT] if BASELINE_RESULT in results else []) + stage_columns
+        header = "| 지표 | " + " | ".join(titles[c] for c in columns) + " |"
         lines = [
             "### %s (iOS %s%s, %s, max %dfps)" % (
-                sample["deviceModel"], sample["systemVersion"],
-                ", Simulator" if sample["isSimulator"] else "", sample["buildConfiguration"], sample["maximumFPS"]),
+                environment["deviceModel"], environment["systemVersion"],
+                ", Simulator" if environment["isSimulator"] else "", environment["buildConfiguration"],
+                environment["maximumFPS"]),
+            "",
+            "측정 %.0f초 × %d회 중앙값. Baseline은 부하 없는 빈 화면(측정 노이즈 바닥)이다." % (
+                sample["metrics"]["durationSeconds"], sample.get("repeat", 1)),
             "",
             header,
             "|---|" + "---:|" * len(columns),
         ]
+        def cell(value, fmt):
+            # 반복 횟수가 짝수면 정수 지표의 중앙값이 x.5가 될 수 있다.
+            return "%.1f" % value if fmt == "%d" and value != int(value) else fmt % value
+
         for title, key, fmt in METRIC_ROWS:
-            lines.append("| %s | " % title + " | ".join(fmt % results[c]["metrics"][key] for c in columns) + " |")
+            lines.append("| %s | " % title + " | ".join(cell(results[c]["metrics"][key], fmt) for c in columns) + " |")
         custom_names = []
         for c in columns:
             for m in results[c]["customMetrics"]:
@@ -532,7 +607,7 @@ def results_markdown(topic):
                 value = next((m["value"] for m in results[c]["customMetrics"] if m["name"] == name), None)
                 cells.append("-" if value is None else "%.2f" % value)
             lines.append("| %s (%s) | " % (name, unit) + " | ".join(cells) + " |")
-        if sample["isSimulator"]:
+        if environment["isSimulator"]:
             lines += ["", "> ⚠ 시뮬레이터 수치는 참고용입니다."]
         sections.append("\n".join(lines))
     return "\n\n".join(sections)
@@ -676,8 +751,10 @@ def main():
     p = sub.add_parser("measure", help="모든 Stage×Framework 자동 측정 (Release)")
     p.add_argument("topic")
     p.add_argument("--device", help="실기기 이름 또는 xcodebuild destination. 기본: 시뮬레이터")
+    p.add_argument("--repeat", type=int, default=DEFAULT_REPEAT, help="조합별 반복 횟수 (중앙값 사용)")
     p.add_argument("--duration", type=float, default=10)
     p.add_argument("--warmup", type=float, default=2)
+    p.add_argument("--allow-incomplete", action="store_true", help="Stage 구현이 끝나지 않아도 측정 (파이프라인 점검용)")
     p.set_defaults(func=cmd_measure)
 
     p = sub.add_parser("table", help="results/로 RESULTS.md 결과표 생성")

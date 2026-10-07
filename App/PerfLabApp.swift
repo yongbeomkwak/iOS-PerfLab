@@ -21,11 +21,20 @@ private struct BenchmarkRootView: View {
 
     var body: some View {
         NavigationStack {
-            if let topic = TopicCatalog.topic(id: benchmark.topicID) {
+            if let topic {
                 TopicContainerView(topic: topic, benchmark: benchmark)
             } else {
-                ContentUnavailableView("Unknown Topic", systemImage: "questionmark", description: Text(benchmark.topicID))
+                ContentUnavailableView(
+                    "Unknown Topic",
+                    systemImage: "questionmark",
+                    description: Text(benchmark.topicID)
+                )
             }
         }
+    }
+
+    private var topic: (any PerfTopic)? {
+        if benchmark.topicID == BaselineTopic.id { return BaselineTopic() }
+        return TopicCatalog.topic(id: benchmark.topicID)
     }
 }
