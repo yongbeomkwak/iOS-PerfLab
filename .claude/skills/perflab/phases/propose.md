@@ -23,7 +23,12 @@
       난이도: ★☆☆ ~ ★★★
    ```
 
-3. 선택되면 주제를 만든다.
+3. 선택되면 `main`에서 주제 브랜치를 만들고 주제를 만든다. `<NN>`은 `scripts/perflab status`로 확인한 다음 번호다.
+
+   ```bash
+   git switch main && git switch -c topic/<NN>-<slug>
+   ```
+
 
    ```bash
    scripts/perflab new --category <category> --slug <kebab-case> \
