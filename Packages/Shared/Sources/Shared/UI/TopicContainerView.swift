@@ -4,6 +4,9 @@ import UIKit
 /// 주제 상세 화면. Stage / UI 프레임워크 전환과 성능 HUD를 제공한다.
 ///
 /// `benchmark`가 주어지면 해당 조합을 자동으로 측정하고 결과를 접근성 요소로 노출한다.
+/// 측정 흐름: 화면 진입 → warm-up 대기 → 지표 초기화와 녹화 시작 → 측정 시간 대기 → 요약을 `BenchmarkResult`로 노출.
+///
+/// - @State: 뷰 구조체가 다시 만들어져도 SwiftUI가 값을 보관해 주는 저장소. `PerfMonitor` 같은 객체도 여기에 두어야 한 번만 생성된다.
 public struct TopicContainerView: View {
     private let topic: any PerfTopic
     private let benchmark: BenchmarkLaunch?
@@ -27,6 +30,7 @@ public struct TopicContainerView: View {
 
     public var body: some View {
         content
+            // .id: 값이 바뀌면 SwiftUI가 하위 뷰를 완전히 새로 만든다. Stage를 바꿀 때 이전 Stage의 상태가 남지 않게 한다.
             .id(ContentID(stage: stage, framework: framework))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .overlay(alignment: .topTrailing) {
@@ -63,12 +67,17 @@ public struct TopicContainerView: View {
                 monitor.reset()
                 customMetrics.reset()
             }
+            // .task: 뷰가 나타날 때 비동기 작업을 시작하고, 뷰가 사라지면 자동으로 취소한다.
             .task { await runBenchmarkIfNeeded() }
     }
 
     @ViewBuilder
     private var content: some View {
-        let context = TopicContext(mode: benchmark == nil ? .interactive : .benchmark, metrics: customMetrics)
+        let context = TopicContext(
+            mode: benchmark == nil ? .interactive : .benchmark,
+            metrics: customMetrics,
+            nextFrame: { [monitor] in monitor.afterNextFrame($0) }
+        )
         switch framework {
         case .swiftui:
             topic.makeSwiftUIView(stage: stage, context: context)
@@ -120,6 +129,10 @@ private struct ContentID: Hashable {
 }
 
 /// 화면이 붙은 `UIWindow`를 전달한다. 화면에서 떨어지면 `nil`을 전달한다.
+///
+/// SwiftUI는 뷰가 어느 window에 있는지 알려 주지 않는다. 빈 UIView를 끼워 넣고 `didMoveToWindow`를 받아 알아낸다.
+/// window를 알아야 그 화면의 최대 주사율로 display link를 맞출 수 있다 (`UIScreen.main`은 iOS 26에서 deprecated).
+/// - UIViewRepresentable: UIKit 뷰를 SwiftUI 뷰 계층에 넣는 어댑터 프로토콜.
 private struct WindowReader: UIViewRepresentable {
     let onChange: (UIWindow?) -> Void
 
@@ -142,6 +155,9 @@ private struct WindowReader: UIViewRepresentable {
 }
 
 /// UIKit Stage 구현을 SwiftUI 화면에 올리기 위한 래퍼.
+///
+/// - UIViewControllerRepresentable: UIViewController를 SwiftUI 뷰처럼 쓰게 하는 어댑터 프로토콜.
+///   `makeUIViewController`는 처음 한 번, `updateUIViewController`는 SwiftUI 상태가 바뀔 때마다 불린다.
 struct UIKitHost: UIViewControllerRepresentable {
     let make: () -> UIViewController
 

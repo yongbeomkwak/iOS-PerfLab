@@ -1,12 +1,17 @@
 import Darwin
 
-/// 현재 프로세스의 CPU 시간, 스레드 수, 메모리 사용량을 읽는다.
+/// 현재 프로세스의 CPU 시간, 스레드 수, 메모리 사용량을 읽는다. `PerfMonitor`가 0.5초마다 호출한다.
+///
+/// 세 함수 모두 커널에 직접 묻는 시스템 콜이라 호출 비용이 수 µs 이하다 (`docs/GUIDE.md` 5절).
+/// `Darwin`은 iOS와 macOS 커널(XNU)의 C API를 Swift로 가져오는 모듈이다.
 enum SystemMetrics {
     /// 프로세스가 지금까지 사용한 CPU 시간(user + system, 초). 종료된 스레드의 시간도 포함한다.
     ///
     /// 두 시점의 차이를 경과 시간으로 나누면 구간 CPU 사용률이 된다.
     /// 스레드별 `thread_info`의 `cpu_usage`는 스케줄러의 감쇠 추정치이고, 샘플 사이에 끝난 스레드가 빠져서 쓰지 않는다.
     static func cpuTime() -> Double {
+        // getrusage: 프로세스가 쓴 자원(CPU 시간 등)을 돌려주는 POSIX API.
+        // user는 앱 코드를 실행한 시간, system은 앱 대신 커널이 일한 시간(파일 I/O, 메모리 할당 등)이다.
         var usage = rusage()
         guard getrusage(RUSAGE_SELF, &usage) == 0 else { return 0 }
         func seconds(_ time: timeval) -> Double { Double(time.tv_sec) + Double(time.tv_usec) / 1_000_000 }
@@ -14,6 +19,8 @@ enum SystemMetrics {
     }
 
     static func threadCount() -> Int {
+        // task_threads: Mach 커널에 이 프로세스(task)의 스레드 목록을 묻는다.
+        // 커널이 목록 메모리와 스레드마다 포트(커널 객체를 가리키는 핸들)를 넘겨주므로, 개수만 읽고 바로 돌려줘야 누수가 없다.
         var threadList: thread_act_array_t?
         var threadCount = mach_msg_type_number_t(0)
         guard task_threads(mach_task_self_, &threadList, &threadCount) == KERN_SUCCESS, let threadList else {
@@ -28,7 +35,12 @@ enum SystemMetrics {
     }
 
     /// Xcode Memory Gauge, Jetsam 기준과 동일한 physical footprint (bytes).
+    ///
+    /// physical footprint는 이 앱 때문에 실제로 쓰이고 있는 물리 메모리다. 다시 읽어 올 수 있는 파일 매핑 등은 빠진다.
+    /// iOS는 이 값이 한도를 넘으면 앱을 강제 종료한다(Jetsam).
     static func memoryFootprint() -> UInt64 {
+        // task_info(TASK_VM_INFO): 프로세스의 가상 메모리 통계를 C 구조체로 채워 준다.
+        // C API가 정수 배열 포인터를 받기 때문에 withMemoryRebound로 구조체 메모리를 그 형태로 넘긴다.
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {

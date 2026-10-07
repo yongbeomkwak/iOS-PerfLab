@@ -21,6 +21,9 @@ public struct NotImplementedView: View {
 }
 
 /// 아직 구현되지 않은 Stage 자리를 채우는 UIKit 뷰 컨트롤러.
+///
+/// - open: 다른 모듈(주제 패키지)의 템플릿이 상속할 수 있게 한다. `public`만으로는 모듈 밖에서 상속할 수 없다.
+/// - UIContentUnavailableConfiguration: 빈 화면 안내(아이콘 + 문구)를 시스템 스타일로 보여 주는 구성 (iOS 17+).
 open class NotImplementedViewController: UIViewController {
     private let stage: Stage
 

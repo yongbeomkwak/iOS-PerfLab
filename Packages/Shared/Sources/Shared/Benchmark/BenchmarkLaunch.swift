@@ -3,6 +3,9 @@ import Foundation
 /// UI 테스트가 launch argument로 전달한 자동 측정 설정.
 ///
 /// `-PerfLabTopic 01-slug -PerfLabStage 0 -PerfLabFramework uikit -PerfLabDuration 10`
+///
+/// 앱 실행 인자 중 `-키 값` 형태는 UserDefaults의 argument 도메인에 자동으로 들어간다.
+/// 그래서 별도 파싱 없이 `UserDefaults.standard`로 읽는다 (앱을 재실행하면 사라지는 임시 값이다).
 public struct BenchmarkLaunch: Sendable {
     public static let resultIdentifier = "perflab.benchmark.result"
 

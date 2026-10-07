@@ -24,6 +24,7 @@ public enum TopicStatus: String, CaseIterable, Codable, Hashable, Sendable, Comp
         }
     }
 
+    // case 선언 순서가 파이프라인 순서다. allCases에 반드시 있으므로 강제 언래핑이 실패할 수 없다.
     private var order: Int { Self.allCases.firstIndex(of: self)! }
 
     public static func < (lhs: TopicStatus, rhs: TopicStatus) -> Bool { lhs.order < rhs.order }
