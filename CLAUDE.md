@@ -5,7 +5,7 @@
 
 - 사람용 진행 가이드: `docs/GUIDE.md` (파이프라인, 역할, 측정 해석)
 - 코드 컨벤션: `docs/CONVENTIONS.md` — **Swift 코드를 쓰기 전에 읽는다.**
-- 커밋 컨벤션: `docs/COMMITS.md` — **커밋 메시지를 쓰기 전에 읽는다.** 설정 변경은 `설정:` 구획에 무엇/왜를 남긴다.
+- 커밋과 브랜치 컨벤션: `docs/COMMITS.md` — **커밋 메시지를 쓰기 전에 읽는다.** 설정 변경은 `설정:` 구획에 무엇/왜를 남긴다.
 
 ## 가장 중요한 원칙
 
@@ -16,6 +16,7 @@
 5. **First-party only.** 서드파티 라이브러리를 추가하지 않는다. UI는 시스템 컴포넌트를 쓴다.
 6. **코드를 바꾸면 `scripts/perflab format`과 `scripts/perflab lint`를 통과시킨다.**
 7. **최적화는 저수준 API만이 아니다.** 자료구조, 값/참조 타입(`class` ↔ `struct`), 메모리, 동시성, 구조 개선 등 CS 지식 전반을 쓴다 (`docs/GUIDE.md` 3절).
+8. **작업마다 브랜치를 딴다.** 주제는 `topic/<NN>-<slug>`, 그 밖은 `<type>/<kebab-case>`. `main`에 직접 커밋하지 않고, 작업이 끝나면 사용자 확인 후 `--no-ff`로 머지한다 (`docs/COMMITS.md` 4절).
 
 ## 파이프라인
 
@@ -54,7 +55,7 @@ Packages/
       results/<device>/stage<N>-<framework>.json
 Templates/Topic/         # 새 주제 템플릿
 Config/Info.plist        # 생성 Info.plist에 합쳐지는 키 (120Hz display link)
-docs/                    # GUIDE(사람용 진행 가이드), CONVENTIONS(코드 컨벤션), COMMITS(커밋 컨벤션)
+docs/                    # GUIDE(사람용 진행 가이드), CONVENTIONS(코드 컨벤션), COMMITS(커밋과 브랜치 컨벤션)
 .gitmessage              # 커밋 메시지 템플릿
 .swift-format            # swift-format 설정
 scripts/perflab          # 파이프라인 CLI

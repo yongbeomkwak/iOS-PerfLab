@@ -7,7 +7,7 @@
 | [README](../README.md) | 처음 보는 사람 | 프로젝트 소개, 주제 목록 |
 | **GUIDE (이 문서)** | 진행하는 사람 | 파이프라인, 역할, 명령어, 측정 해석 |
 | [CONVENTIONS](CONVENTIONS.md) | 코드를 쓰고 읽는 사람 | 포맷, 이름, 주석, Stage 파일 구조 |
-| [COMMITS](COMMITS.md) | 커밋하는 사람 | 커밋 제목과 본문 형식, 설정 변경 기록법 |
+| [COMMITS](COMMITS.md) | 커밋하는 사람 | 커밋 제목과 본문 형식, 설정 변경 기록법, 브랜치와 머지 |
 | `CLAUDE.md`, `.claude/` | Claude | 단계별 절차(skill), 규칙, 리뷰 에이전트 |
 
 ---
@@ -52,6 +52,8 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 | **summarized** | 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글 작성 | `docs/SUMMARY.md` | TODO 없음 |
 | **archived** | 회고: 파이프라인에서 바꾸고 싶은 점 | README 표 갱신 | README | README에 등록 |
 
+주제 하나는 `topic/<NN>-<slug>` 브랜치 하나에서 진행한다. 각 단계가 끝날 때 Claude가 커밋할지 묻고, archived까지 끝나면 `main`에 머지할지 묻는다. 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문과 머지 규칙은 [COMMITS](COMMITS.md)를 따른다.
+
 ### 최적화의 범위
 
 최적화는 CoreGraphics나 Metal 같은 저수준 API만 뜻하지 않는다. **비용이 어디서 생기는지 알고, 그 비용을 줄이도록 바꾸는 것** 전부가 최적화다.
@@ -74,8 +76,6 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 - PLAN.md의 Stage 전략에는 **어느 축의 어떤 CS 개념**을 쓰는지 적는다.
 - 최적화는 대가가 있다. `struct`가 항상 빠른 것도, 동시성이 항상 빠른 것도 아니다. 예상과 다르게 느려지는 경우도 측정해 기록할 가치가 있다.
 - 주제마다 Stage 2의 축이 한쪽(예: 렌더링)에만 몰리지 않게 고른다.
-
-각 단계가 끝날 때 Claude가 커밋할지 묻는다. 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문은 [COMMITS](COMMITS.md)를 따른다.
 
 ## 4. 명령어
 

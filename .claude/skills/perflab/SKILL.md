@@ -38,6 +38,7 @@ argument-hint: "[new | <topic-id> | status]"
 - **advance 실패 시**: 출력된 미충족 항목을 해결한 뒤 다시 시도한다. 검증을 우회하지 않는다.
 - **빌드 확인**: 코드를 바꾼 단계는 끝내기 전에 `scripts/perflab lint`, `scripts/perflab build`, `scripts/perflab test <topic>`이 통과해야 한다.
 - **규칙**: 코드는 `docs/CONVENTIONS.md`와 `.claude/rules/topics.md`, 문서는 `.claude/rules/docs.md`를 따른다.
+- **브랜치**: 주제 작업은 `topic/<NN>-<slug>` 브랜치에서만 한다. 단계를 시작할 때 현재 브랜치가 그 주제 브랜치인지 확인하고, 아니면 전환한다.
 - **커밋**: 단계가 끝날 때마다 커밋할지 사용자에게 묻는다. 제목은 `[#NN] <status>: <요약>`이다. 예) `[#01] stage1: 셀 이미지 비동기 디코딩`
   본문은 `docs/COMMITS.md`의 구획(`왜:`, `설정:`, `변경:`, `확인:`)을 따른다. 설정을 바꿨다면 `설정:`에 무엇/왜를 남긴다.
 
