@@ -14,15 +14,16 @@
    - 답을 받은 뒤 짧게 해설하고 구현을 시작한다.
 4. 구현한다 (`.claude/rules/topics.md` 준수).
    - `SwiftUI/StageNView.swift`, `UIKit/StageNViewController.swift`
-   - `// PERFLAB: NOT_IMPLEMENTED` 마커를 지우고, 파일 상단에 전략 주석을 1~3줄 쓴다.
+   - `// PERFLAB: NOT_IMPLEMENTED` 마커를 지우고, `docs/CONVENTIONS.md` 6절 형식으로 머리말(`// 전략:`, `// 변경:`)과 구획을 쓴다.
    - Benchmark 모드 자동 재생을 구현한다.
    - 핵심 구간에 signpost를, 필요하면 커스텀 지표를 넣는다.
 5. 정합성 테스트를 추가하거나 갱신한다 (Stage N의 결과가 Stage 0과 같은지).
 6. 검증:
 
    ```bash
+   scripts/perflab format <주제 경로>
    scripts/perflab test <topic>
-   xcodebuild -project PerfLab.xcodeproj -scheme PerfLab -destination '<시뮬레이터>' build
+   scripts/perflab build
    ```
 
 7. `stage-reviewer` 에이전트로 공정성 리뷰를 받고, 지적 사항을 반영하거나 반영하지 않은 이유를 사용자에게 알린다.

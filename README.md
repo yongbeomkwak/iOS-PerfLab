@@ -20,6 +20,8 @@ AI Agent로 iOS 개발을 하다 보면 UI는 빠르게 만들어지지만, **"�
 
 ## 진행 방식
 
+> 단계별 역할, 명령어, 측정 해석은 **[진행 가이드](docs/GUIDE.md)**, 코드 규칙은 **[코드 컨벤션](docs/CONVENTIONS.md)**, 커밋 규칙은 **[커밋 컨벤션](docs/COMMITS.md)** 에 정리되어 있다.
+
 하나의 주제는 아래 파이프라인을 **항상 같은 순서로** 지나간다. 각 단계는 정해진 산출물이 있어야 다음으로 넘어갈 수 있다 (`scripts/perflab advance`가 검사).
 
 ```
@@ -54,13 +56,14 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 | 지표 | 내용 | 수집 방법 |
 |---|---|---|
 | **FPS / Hitch** | 평균·최저 FPS, hitch 횟수, hitch time ratio (ms/s) | `CADisplayLink` |
-| **CPU** | 프로세스 CPU 사용률 (평균 / 최대) | `task_threads` + `thread_info` |
+| **CPU** | 프로세스 CPU 사용률 (평균 / 최대) | `getrusage` CPU 시간의 구간 차이 |
 | **메모리** | Physical footprint (평균 / 최대) | `task_info(TASK_VM_INFO)` |
 | **스레드** | 최대 스레드 수 | `task_threads` |
 | **주제별 지표** | 파싱 시간, 디코딩 시간 등 | `context.metrics` |
 | **구간 분석** | Instruments에서 확인할 구간 | `os_signpost` (`PerfSignpost`) |
 
 - 정식 결과는 **실기기 + Release 빌드** 기준이고, 시뮬레이터 수치는 참고용이다.
+- 조합마다 **3회 반복해 중앙값**을 쓰고, 부하 없는 빈 화면(**Baseline**)을 함께 측정해 노이즈 바닥과 비교한다.
 - 앱 안에서는 **성능 HUD**로 Stage를 바꿀 때마다 실시간 수치를 확인할 수 있다.
 
 ### 학습 체크포인트
@@ -119,7 +122,8 @@ Packages/
         ├── docs/         # PLAN · LEARNING · RESULTS · SUMMARY
         └── results/      # 측정 결과 JSON
 Templates/Topic/          # 새 주제 템플릿
-scripts/perflab           # 파이프라인 CLI
+docs/                     # 진행 가이드, 코드 컨벤션, 커밋 컨벤션
+scripts/perflab           # 파이프라인 CLI (상태 전환, 측정, format/lint)
 .claude/                  # Claude Code 규칙, /perflab skill, 리뷰 에이전트
 ```
 
@@ -138,6 +142,7 @@ scripts/perflab status
 scripts/perflab validate <topic>
 scripts/perflab measure <topic> --device "<실기기 이름>"
 scripts/perflab table <topic>
+scripts/perflab build | format | lint
 ```
 
 <br>
@@ -166,6 +171,7 @@ scripts/perflab table <topic>
 - Xcode 26+, Swift 6 (strict concurrency)
 - iOS 17+
 - SPM 로컬 패키지 (서드파티 의존성 없음, first-party only)
+- 코드 포맷: Xcode 내장 `swift-format`
 
 <br>
 
@@ -176,4 +182,5 @@ scripts/perflab table <topic>
 - [x] Stage / UI 프레임워크 전환 공통 컴포넌트
 - [x] 자동 측정 파이프라인 (UI 테스트 → 결과 JSON → 결과표)
 - [x] 주제 템플릿, 파이프라인 CLI, Claude Code skill
+- [x] 진행 가이드, 코드 컨벤션(swift-format), 측정 신뢰도 보강 (반복 측정, Baseline)
 - [ ] #01 첫 주제 진행

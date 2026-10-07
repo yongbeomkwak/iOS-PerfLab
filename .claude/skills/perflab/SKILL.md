@@ -36,9 +36,10 @@ argument-hint: "[new | <topic-id> | status]"
 - **한 번에 한 단계**: 한 단계를 마치면 `scripts/perflab advance <topic>`으로 전환하고, 결과를 보고한 뒤 멈춘다.
   사용자가 "계속"이라고 하면 다음 단계로 간다.
 - **advance 실패 시**: 출력된 미충족 항목을 해결한 뒤 다시 시도한다. 검증을 우회하지 않는다.
-- **빌드 확인**: 코드를 바꾼 단계는 끝내기 전에 앱 빌드와 `scripts/perflab test <topic>`이 통과해야 한다.
-- **규칙**: 코드는 `.claude/rules/topics.md`, 문서는 `.claude/rules/docs.md`를 따른다.
-- **커밋**: 단계가 끝날 때마다 커밋할지 사용자에게 묻는다. 메시지 형식은 `[#NN] <status>: <요약>`이다. 예) `[#01] stage1: 셀 이미지 비동기 디코딩`
+- **빌드 확인**: 코드를 바꾼 단계는 끝내기 전에 `scripts/perflab lint`, `scripts/perflab build`, `scripts/perflab test <topic>`이 통과해야 한다.
+- **규칙**: 코드는 `docs/CONVENTIONS.md`와 `.claude/rules/topics.md`, 문서는 `.claude/rules/docs.md`를 따른다.
+- **커밋**: 단계가 끝날 때마다 커밋할지 사용자에게 묻는다. 제목은 `[#NN] <status>: <요약>`이다. 예) `[#01] stage1: 셀 이미지 비동기 디코딩`
+  본문은 `docs/COMMITS.md`의 구획(`왜:`, `설정:`, `변경:`, `확인:`)을 따른다. 설정을 바꿨다면 `설정:`에 무엇/왜를 남긴다.
 
 ## 단계 종료 보고 형식
 

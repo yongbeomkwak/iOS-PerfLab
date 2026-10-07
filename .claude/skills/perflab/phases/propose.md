@@ -29,7 +29,7 @@
    ```
 
 4. 사용하지 않을 Stage나 프레임워크가 있으면 `topic.json`의 `stages` / `frameworks`를 조정한다. 기본은 모두 사용한다.
-5. `scripts/perflab validate <topic>`을 실행하고 앱 빌드를 확인한다.
+5. `scripts/perflab validate <topic>`과 `scripts/perflab build`를 실행한다.
 6. 종료 보고 후 멈춘다. 다음 단계는 plan이다.
 
 ## 제목 규칙

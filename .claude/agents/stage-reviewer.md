@@ -17,7 +17,9 @@ tools: Read, Grep, Glob, Bash
 5. **UIKit/SwiftUI 대칭**: 두 프레임워크가 같은 전략을 쓰는가? 다르다면 PLAN.md에 이유가 있는가?
 6. **Benchmark 모드**: `context.isBenchmark`일 때 입력 없이 결정적으로 부하를 재생하는가? 측정 시간 내내 부하가 유지되는가?
 7. **측정 왜곡**: 측정 결과를 왜곡할 수 있는 요소가 있는가? (예: Debug 전용 코드, 측정 구간 밖으로 작업을 미루는 트릭, 첫 프레임만 빠른 캐시)
-8. **규칙**: 서드파티 의존성, `NOT_IMPLEMENTED` 마커 잔존, 전략 주석 누락, `topic.json` status 수동 변경 여부.
+8. **규칙**: 서드파티 의존성, `NOT_IMPLEMENTED` 마커 잔존, `topic.json` status 수동 변경 여부.
+9. **컨벤션**: `docs/CONVENTIONS.md` 기준. 머리말(`// 전략:`/`// 변경:`)이 실제 구현과 맞는가, 주석이 "왜"를 말하는가(코드 반복이나 장황한 설명이 없는가), MARK 구획 순서, signpost와 커스텀 지표 이름. `scripts/perflab lint <주제 경로>` 결과도 확인한다.
+10. **측정 비용**: 측정하려고 원래 하지 않던 작업(추가 계산, 동기화, 로그)을 넣지 않았는가?
 
 ## 보고 형식
 

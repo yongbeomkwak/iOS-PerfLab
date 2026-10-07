@@ -26,7 +26,9 @@ paths:
 - 구현을 마친 Stage 파일에서는 `// PERFLAB: NOT_IMPLEMENTED` 마커를 지운다.
 - UIKit Stage는 `NotImplementedViewController` 대신 `UIViewController`를 상속하도록 바꾼다.
 - 핵심 구간은 `PerfSignpost.signposter`로 표시하고, 주제별 지표는 `context.metrics`로 기록한다.
-- Stage 파일 상단에 "이 Stage의 전략"을 1~3줄 주석으로 적는다. 블로그와 리뷰에서 그대로 인용한다.
+- Stage 파일 상단에 `// 전략:` 머리말을 쓰고, 첫 Stage 이후에는 `// 변경:`도 쓴다. 형식, 구획 순서, 주석 기준은 `docs/CONVENTIONS.md`의 "Stage 파일 구조"를 따른다.
+- 이름(signpost, 커스텀 지표 포함), 접근 제어, 동시성 규칙도 `docs/CONVENTIONS.md`를 따른다. 구현 후 `scripts/perflab format <주제 경로>`를 실행한다.
+- 측정하려고 원래 하지 않던 작업을 추가하지 않는다. 그런 지표는 Instruments로 확인한다.
 - 여러 Stage가 공유하는 모델과 유틸은 주제 폴더 루트(예: `Model.swift`)에 둔다. 단, 최적화 대상이 되는 로직은 공유하지 않는다.
 - `Shared` 패키지 수정이 필요하면 모든 주제에 쓸 수 있는 일반적인 기능인지 먼저 확인하고, 사용자에게 알린다.
 
