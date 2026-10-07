@@ -3,7 +3,10 @@ import Observation
 import QuartzCore
 import UIKit
 
-/// 일정 주기로 샘플링한 성능 지표.
+/// 일정 주기(기본 0.5초)로 샘플링한 성능 지표. HUD가 `current`로 보여 주고, 녹화 중에는 모아서 요약한다.
+///
+/// - Codable: 결과 JSON으로 저장할 수 있게 한다.
+/// - Sendable: 값만 담은 구조체라 스레드 사이로 넘겨도 안전하다는 표시.
 public struct PerfSample: Codable, Hashable, Sendable {
     public let fps: Double
     /// 100% = 코어 1개를 완전히 사용.
@@ -14,8 +17,12 @@ public struct PerfSample: Codable, Hashable, Sendable {
 
 /// CADisplayLink와 시스템 API로 FPS, Hitch, CPU, 메모리, 스레드 수를 실시간 수집한다.
 ///
+/// `TopicContainerView`가 하나 만들어 HUD 표시와 자동 측정 녹화에 쓴다.
 /// FPS와 Hitch는 메인 스레드가 display link 콜백을 제때 처리했는지로 판단한다.
 /// 렌더 서버(GPU) 단계의 hitch는 잡히지 않으므로 Instruments의 Animation Hitches로 확인한다.
+///
+/// - @MainActor: display link 콜백과 UI 갱신이 모두 메인 스레드에서 일어나므로, 상태를 메인 스레드에서만 만지게 컴파일러가 강제한다.
+/// - @Observable: `current`가 바뀌면 이 값을 읽는 SwiftUI 뷰(HUD)만 다시 그려지게 하는 매크로 (Observation 프레임워크).
 @MainActor
 @Observable
 public final class PerfMonitor {
@@ -27,6 +34,8 @@ public final class PerfMonitor {
     public private(set) var maximumFPS = 60
 
     private let sampleInterval: CFTimeInterval
+    /// CADisplayLink: 화면이 새로 그려질 때마다(vsync) 메인 런루프에서 호출되는 타이머.
+    /// 메인 스레드가 바쁘면 콜백이 늦거나 건너뛰어지므로, 콜백 간격으로 프레임 누락을 알 수 있다.
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval?
     private var windowStart: CFTimeInterval = 0
@@ -48,8 +57,10 @@ public final class PerfMonitor {
             selector: #selector(DisplayLinkProxy.tick(_:))
         )
         // 콘텐츠가 멈춰 있어도 최대 주사율로 콜백을 받아야 프레임 누락을 판단할 수 있다.
+        // ProMotion 기기는 화면 변화가 없으면 주사율을 낮추는데, preferredFrameRateRange로 최대 주사율을 요청한다.
         let maximum = Float(maximumFPS)
         link.preferredFrameRateRange = CAFrameRateRange(minimum: maximum, maximum: maximum, preferred: maximum)
+        // .common 모드: 스크롤 중(tracking 모드)에도 콜백을 받는다. .default로 등록하면 스크롤하는 동안 멈춘다.
         link.add(to: .main, forMode: .common)
         displayLink = link
         reset()
@@ -86,6 +97,8 @@ public final class PerfMonitor {
     // MARK: - Private
 
     private func tick(_ link: CADisplayLink) {
+        // timestamp: 이번 프레임이 시작된 시각, targetTimestamp: 다음 프레임이 화면에 나갈 예정 시각.
+        // 둘의 차이가 이 기기의 한 프레임 길이다 (120Hz면 약 8.3ms).
         if let lastTimestamp {
             let frameDuration = link.timestamp - lastTimestamp
             let expected = link.targetTimestamp - link.timestamp
@@ -117,6 +130,7 @@ public final class PerfMonitor {
 }
 
 private extension PerfMonitor {
+    /// 자동 측정의 녹화 구간 동안 샘플과 hitch를 모은다. 녹화가 끝나면 `BenchmarkMetrics`로 요약한다.
     struct Recording {
         let startTime: CFTimeInterval
         var samples: [PerfSample] = []
@@ -150,6 +164,10 @@ private extension PerfMonitor {
 }
 
 /// CADisplayLink가 target을 강하게 잡는 것을 피하기 위한 프록시.
+///
+/// CADisplayLink는 target을 강한 참조로 잡는다. PerfMonitor를 직접 target으로 주면 서로를 붙잡아(순환 참조)
+/// 화면을 떠나도 해제되지 않는다. 프록시가 대신 잡히고, 프록시는 클로저 안에서 PerfMonitor를 약하게(weak) 잡는다.
+/// - NSObject: `#selector`로 호출되는 Objective-C 메서드(`@objc`)를 가지려면 NSObject를 상속해야 한다.
 private final class DisplayLinkProxy: NSObject {
     private let handler: @MainActor (CADisplayLink) -> Void
 
