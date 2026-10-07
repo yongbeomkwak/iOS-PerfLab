@@ -6,13 +6,29 @@ import Testing
 struct ConsistencyTests {
     private let products = Scenario.products
 
-    @Test func stage0MatchesReference() {
+    @Test func stage0MatchesReference() async {
         let search = Stage0Search(products: products)
-        replayTypingScript { query in
+        await replayTypingScript { query in
             search.filter(query).map {
                 SearchMatch(productID: $0.id, highlights: Stage0Search.highlights(in: $0.name, query: query))
             }
         }
+    }
+
+    @Test func stage1MatchesReference() async throws {
+        let search = Stage1Search(products: products)
+        try await replayTypingScript { query in
+            try await search.search(query).rows.map {
+                SearchMatch(productID: $0.product.id, highlights: $0.highlights)
+            }
+        }
+    }
+
+    @Test func stage1StopsWhenCancelled() async {
+        let search = Stage1Search(products: products)
+        let task = Task { try await search.search("a") }
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
     }
 
     @Test func referenceFindsEveryOccurrence() {
@@ -25,12 +41,13 @@ struct ConsistencyTests {
 
     /// 입력 스크립트를 순서대로 넣으며 매 단계 결과를 기준 구현과 비교한다.
     /// 이전 검색어의 결과를 다시 쓰는 Stage(증분 검색)도 같은 순서로 검증하기 위해서다.
-    private func replayTypingScript(_ search: (String) -> [SearchMatch]) {
+    private func replayTypingScript(_ search: (String) async throws -> [SearchMatch]) async rethrows {
         var expected: [String: [SearchMatch]] = [:]
         for (step, query) in Scenario.typingScript.enumerated() {
             let reference = expected[query] ?? referenceMatches(query)
             expected[query] = reference
-            #expect(search(query) == reference, "step \(step): \(query)")
+            let matches = try await search(query)
+            #expect(matches == reference, "step \(step): \(query)")
         }
     }
 
