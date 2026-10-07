@@ -118,4 +118,9 @@
   계산이 끝났지만 적용 전이면 `guard !Task.isCancelled`에서 버려진다. 이 두 경우가 `skippedResults`다.
   "보조"는 "보"의 결과를 이어받지 않고 5만 개를 처음부터 다시 거른다 (이어받는 것이 Stage 2의 증분 검색).
 - **이해 확인 (최종):** "좋아 이해했어"
+- **사용자 질문 (Stage 2 전):** "2개의 테스크가 열렸어, 근데 Task 캔슬은 어떻게 해당 테스크가 캔슬된건지 판단하는거야?"
+  → 취소 표시는 Task마다 따로 있다. `searchTask.cancel()`은 그 핸들이 가리키는 Task 하나에만 표시를 남긴다.
+  `Task.isCancelled`와 `Task.checkCancellation()`은 static이지만 "지금 이 코드를 실행 중인 Task"의 표시를 읽는다.
+  런타임이 작업을 스레드에서 실행할 때 현재 Task를 함께 기록해 두기 때문이다. `await`로 부른 `@concurrent` 함수는
+  새 Task가 아니라 같은 Task의 일부로 실행되므로, 그 안의 확인도 바깥 Task의 표시를 본다.
 - **남은 궁금증:** S1은 메인을 비웠지만 계산량(`filterTime`)과 `resultLatency`는 그대로다. 계산 자체를 줄이는 것은 Stage 2(인덱스 + 증분 검색)의 몫이다.
