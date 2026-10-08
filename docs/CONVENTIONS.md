@@ -26,6 +26,7 @@ scripts/perflab lint   [경로...]   # 규칙 검사
 | Stage 파일과 타입 | 템플릿 이름을 그대로 쓴다 | `Stage1ViewController`, `Stage1View` |
 | Stage 전용 보조 타입 | `Stage<N>` 접두사 | `Stage1ImageCell` |
 | 여러 Stage가 공유하는 모델 | 주제 폴더 루트 파일 | `Model.swift`의 `FeedItem` |
+| Stage 로직 파일 | 주요 타입 하나에 파일 하나, 파일 이름 = 타입 이름 | `Search/Stage2/Stage2Index.swift` |
 | signpost 구간 이름 | lowerCamelCase 동사구 | `"decodeImage"`, `"applySnapshot"` |
 | 커스텀 지표 이름 | lowerCamelCase 명사구, 단위는 `unit`에 따로 | `record("decodeTime", value: 3.2, unit: "ms")` |
 
@@ -98,6 +99,27 @@ guard cell.itemID == item.id else { return }
 - 프로토콜 채택은 extension으로 분리하고, 그 위에 프로토콜 이름으로 MARK를 단다.
 
 ## 6. Stage 파일 구조
+
+### 폴더
+
+화면 코드와 최적화 대상 로직을 나눈다. 화면 파일은 입력을 받고 결과를 그리고 지표를 남기는 일만 하고, 로직은 역할 폴더 아래 Stage별 폴더에 둔다.
+
+```
+<NN-slug>/
+├── Model.swift, Scenario.swift, ...   # 모든 Stage 공통 (주제 폴더 루트)
+├── <역할>/                            # 예) Search, Decoding, Layout
+│   ├── Stage0/Stage0Search.swift
+│   ├── Stage1/Stage1Search.swift
+│   └── Stage2/Stage2Index.swift, Stage2ResultStack.swift, Stage2Search.swift
+├── UIKit/Stage{0,1,2}ViewController.swift
+└── SwiftUI/Stage{0,1,2}View.swift
+```
+
+- 파일 하나에 주요 타입 하나를 두고, 파일 이름은 타입 이름과 같게 한다. 한 Stage의 로직이 여러 타입이면 Stage 폴더 안에서 나눈다.
+  작은 중첩 타입(`Output`, `Plan`)은 바깥 타입 파일에 둔다.
+- 로직이 타입 하나라도 Stage 폴더를 만든다. Stage 사이의 구조가 같아야 비교하며 읽기 쉽다.
+- 로직이 화면 안에서 끝날 만큼 작으면 역할 폴더를 만들지 않는다.
+- Stage 폴더 사이에서 로직을 공유하지 않는다 (`.claude/rules/topics.md` "공정한 비교"). 공유하는 것은 모델과 측정 유틸뿐이고, 주제 폴더 루트에 둔다.
 
 ### 머리말 (필수, `scripts/perflab advance`가 검사)
 
