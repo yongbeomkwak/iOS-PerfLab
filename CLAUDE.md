@@ -48,6 +48,7 @@ Packages/
       topic.json         # 메타데이터 + status
       Topic.swift        # PerfTopic 구현 (Stage → 화면 매핑)
       Scenario.swift     # 모든 Stage가 공유하는 입력 (seed 고정)
+      <역할>/Stage{0,1,2}/  # 최적화 대상 로직 (예: Search/Stage2/Stage2Index.swift), 타입 하나에 파일 하나
       UIKit/Stage{0,1,2}ViewController.swift
       SwiftUI/Stage{0,1,2}View.swift
       Tests/             # 시나리오 결정성, Stage 간 결과 정합성
