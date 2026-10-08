@@ -326,7 +326,8 @@ def result_sets(topic):
     sets = {}
     for device in sorted((topic.path / "results").glob("*")):
         if device.is_dir():
-            sets[device.name] = {p.stem for p in device.glob("stage*-*.json")}
+            # baseline.json도 필수 결과라 함께 센다 (expected_results에 들어 있다).
+            sets[device.name] = {p.stem for p in device.glob("*.json")}
     return sets
 
 
@@ -626,6 +627,39 @@ METRIC_ROWS = [
     ("Threads peak", "threadPeak", "%d"),
 ]
 
+# 결과표의 "의미" 열. 공통 지표는 여기서, 주제별 지표는 PLAN.md 커스텀 지표 표의 "의미" 열에서 가져온다.
+METRIC_MEANINGS = {
+    "fpsAverage": "1초에 메인 스레드가 처리한 프레임 수의 평균. 최대 주사율에 가까울수록 부드럽다",
+    "fpsMinimum": "0.5초 구간 중 가장 낮았던 FPS. 순간적으로 가장 심하게 끊긴 정도",
+    "hitchCount": "프레임 간격이 기대 시간의 1.5배를 넘은 횟수. 적을수록 좋다",
+    "hitchTimeRatio": "기대 시간을 넘긴 시간의 합을 초당으로 나눈 값. 5 미만 양호, 10 이상 심각 (Apple 기준)",
+    "cpuAverage": "프로세스 CPU 사용률 평균. 100% = 코어 1개를 다 씀. 일의 양을 보여 준다",
+    "cpuPeak": "0.5초 구간 중 가장 높았던 CPU 사용률",
+    "memoryAverageMB": "앱이 실제로 쓰는 물리 메모리(physical footprint) 평균. iOS가 앱을 종료시키는 기준과 같다",
+    "memoryPeakMB": "물리 메모리의 최대값",
+    "threadPeak": "프로세스 스레드 수의 최대값",
+}
+
+
+def plan_metric_meanings(topic):
+    """PLAN.md 커스텀 지표 표에서 {지표 이름: 의미의 첫 문장}을 읽는다."""
+    path = topic.doc("PLAN.md")
+    meanings = {}
+    for header, rows in markdown_tables(path.read_text() if path.exists() else ""):
+        if header[:2] != ["이름", "단위"] or "의미" not in header:
+            continue
+        index = header.index("의미")
+        where = header.index("측정 위치") if "측정 위치" in header else None
+        for row in rows:
+            # 결과표가 넓어지지 않게 첫 문장만 쓴다. 자세한 정의는 PLAN.md에 있다.
+            meaning = row[index].split(". ")[0].rstrip(".")
+            # 시간 지표는 어디서부터 어디까지 잰 값인지 함께 보여 준다 (괄호 속 보충 설명은 뺀다).
+            if where is not None and "→" in row[where]:
+                meaning += " (구간: %s)" % re.sub(r"\s*\([^)]*\)", "", row[where]).strip()
+            for name in re.findall(r"`([^`]+)`", row[0]):
+                meanings[name] = meaning
+    return meanings
+
 
 def results_markdown(topic):
     sections = []
@@ -648,7 +682,7 @@ def results_markdown(topic):
         stage_columns = [(s, f) for f in topic.frameworks for s in topic.stages if (s, f) in results]
         titles.update({(s, f): "%s S%d" % (FRAMEWORK_TITLES[f], s) for s, f in stage_columns})
         columns = ([BASELINE_RESULT] if BASELINE_RESULT in results else []) + stage_columns
-        header = "| 지표 | " + " | ".join(titles[c] for c in columns) + " |"
+        header = "| 지표 | " + " | ".join(titles[c] for c in columns) + " | 의미 |"
         lines = [
             "### %s (iOS %s%s, %s, max %dfps)" % (
                 environment["deviceModel"], environment["systemVersion"],
@@ -659,25 +693,28 @@ def results_markdown(topic):
                 sample["metrics"]["durationSeconds"], sample.get("repeat", 1)),
             "",
             header,
-            "|---|" + "---:|" * len(columns),
+            "|---|" + "---:|" * len(columns) + "---|",
         ]
         def cell(value, fmt):
             # 반복 횟수가 짝수면 정수 지표의 중앙값이 x.5가 될 수 있다.
             return "%.1f" % value if fmt == "%d" and value != int(value) else fmt % value
 
         for title, key, fmt in METRIC_ROWS:
-            lines.append("| %s | " % title + " | ".join(cell(results[c]["metrics"][key], fmt) for c in columns) + " |")
+            lines.append(
+                "| %s | " % title + " | ".join(cell(results[c]["metrics"][key], fmt) for c in columns)
+                + " | %s |" % METRIC_MEANINGS[key])
         custom_names = []
         for c in columns:
             for m in results[c]["customMetrics"]:
                 if (m["name"], m["unit"]) not in custom_names:
                     custom_names.append((m["name"], m["unit"]))
+        meanings = plan_metric_meanings(topic)
         for name, unit in custom_names:
             cells = []
             for c in columns:
                 value = next((m["value"] for m in results[c]["customMetrics"] if m["name"] == name), None)
                 cells.append("-" if value is None else "%.2f" % value)
-            lines.append("| %s (%s) | " % (name, unit) + " | ".join(cells) + " |")
+            lines.append("| %s (%s) | " % (name, unit) + " | ".join(cells) + " | %s |" % meanings.get(name, "-"))
         if environment["isSimulator"]:
             lines += ["", "> ⚠ 시뮬레이터 수치는 참고용입니다."]
         sections.append("\n".join(lines))
