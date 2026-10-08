@@ -326,7 +326,8 @@ def result_sets(topic):
     sets = {}
     for device in sorted((topic.path / "results").glob("*")):
         if device.is_dir():
-            sets[device.name] = {p.stem for p in device.glob("stage*-*.json")}
+            # baseline.json도 필수 결과라 함께 센다 (expected_results에 들어 있다).
+            sets[device.name] = {p.stem for p in device.glob("*.json")}
     return sets
 
 
