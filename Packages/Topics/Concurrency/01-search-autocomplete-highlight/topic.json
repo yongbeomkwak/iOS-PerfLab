@@ -12,7 +12,7 @@
     "AttributedString",
     "IncrementalSearch"
   ],
-  "status": "stage2",
+  "status": "measured",
   "stages": [
     0,
     1,
