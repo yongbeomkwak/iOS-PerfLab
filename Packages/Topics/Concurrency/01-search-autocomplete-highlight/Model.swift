@@ -18,3 +18,7 @@ struct SearchMatch: Hashable, Sendable {
     /// 영문과 완성형 한글은 한 글자가 UTF-16 하나라 오프셋이 글자 수와 같다.
     let highlights: [Range<Int>]
 }
+
+/// Swift 배열 힙 버퍼의 헤더 크기 (64비트: 객체 헤더 16B + 개수·용량 16B).
+/// 배열이 많은 구조(행마다, 이름마다 배열)는 이 값이 무시할 수 없어 `searchMemory` 추정에 Stage 공통으로 더한다.
+let arrayHeaderBytes = 32

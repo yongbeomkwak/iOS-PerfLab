@@ -62,7 +62,7 @@
 
 | 이름 | 단위 | 측정 위치 | 의미 |
 |---|---|---|---|
-| `indexBuildTime` | ms | 화면을 만들 때 검색 준비 작업의 시작 → 끝 | 검색 전에 한 번 드는 준비 비용. S0, S1은 준비 작업이 없어 0 |
+| `indexBuildTime` | ms | 화면을 연 직후 백그라운드 검색 준비 작업의 시작 → 끝 | 첫 검색 결과 전에 한 번 드는 준비 비용. warm-up 중에 끝나 CPU와 첫 검색 지연은 측정 구간 밖이고 이 지표로만 드러난다. S0, S1은 준비 작업이 없어 0 |
 | `inputDelay` | ms | 입력 예정 시각 → 그 입력을 처리한 뒤 첫 프레임이 화면에 나갈 시각 (`context.afterNextFrame`) | 입력이 화면에 얼마나 늦게 반영됐나 ("글자가 늦게 찍힌다"). 렌더 서버(GPU) 단계의 지연은 포함하지 않는다 |
 | `resultLatency` | ms | 입력 시점 → 그 검색어의 결과를 목록 데이터에 적용한 시점 | 결과가 얼마나 늦게 갱신됐나 ("갱신이 늦는다") |
 | `filterTime` | ms | 필터링(+ 해당 Stage가 미리 계산하는 하이라이트) 작업의 시작 → 끝 | 실행 스레드와 관계없이 검색 한 번에 드는 계산량 |
@@ -72,9 +72,12 @@
 - 시간 지표는 원래 하는 작업의 앞뒤에서 시각만 읽는다. `resultLatency`의 시작점은 입력이 들어온 순간(UIKit 입력 이벤트, SwiftUI 바인딩 set)이다.
 - 대가 지표(`searchMemory`, `indexBuildTime`)는 모든 Stage가 기록한다.
 - `searchMemory`는 자료구조를 만드는 반복문 안에서 원소 수만 더해 `원소 수 × MemoryLayout.stride`(문자열 사본은 UTF-16 길이 × 2바이트)로 계산한다.
+  배열이 여러 개인 구조(S1 행마다의 일치 위치, S2 이름마다의 인덱스, 스택 항목)는 배열마다 힙 버퍼 헤더 32바이트를 더한다.
   할당기 오버헤드는 빠지므로 추정치이고, 실제 상주 메모리는 공통 지표 `Memory`로 함께 본다. 해당 구조가 없는 Stage는 그 항목을 0으로 센다.
 - 셀마다의 하이라이트 생성 시간은 지표로 남기지 않고 signpost `highlight`로 Instruments에서 본다. 셀마다 기록하면 기록 자체가 부하가 된다.
-- signpost: `filter`, `highlight`, `applyResults`
+- signpost: `filter`, `highlight`, `applyResults`. S2의 `filter`에는 경로(`full`, `narrow`, `reuse`)를 함께 남긴다.
+- S2의 `filterTime`, `resultLatency`는 경로가 섞인 평균이다. 스크립트 62단계는 full 8 · narrow 23 · reuse 23 · 빈 검색어 8이며,
+  결과가 밀려 스택에 쌓이지 못하면 narrow 대신 full이 늘어 기기 속도에 따라 분포가 달라진다. 경로별 시간은 signpost로 본다.
 
 ## Stage 전략
 
@@ -82,14 +85,14 @@
 |---|---|---|---|---|---|---|
 | S0 Naive | 입력마다 메인 스레드에서 `name.lowercased().contains(query.lowercased())`로 전체를 거르고, 셀을 그릴 때 `range(of:options: .caseInsensitive)`를 반복해 일치 위치를 찾아 강조 문자열을 만든다 | - | 동기 처리, `String.Index` | 기준점 | - | - |
 | S1 Optimized | S0의 검색 코드(거르기 + 일치 위치)를 그대로 백그라운드 `Task`로 옮긴다. 새 입력이 오면 이전 Task를 취소하고, 최신 검색어의 결과만 적용한다. 셀은 계산된 위치로 강조 문자열만 만든다 | 동시성 | 메인 스레드 분리, 협력적 취소(`Task.checkCancellation`), 결과 순서 보장 | `inputDelay`가 크게 줄고 입력이 밀리지 않는다 | 계산량은 그대로이고 결과 전체의 위치를 미리 구하므로 CPU와 메모리는 오히려 늘 수 있다. 취소된 작업 비용, 결과가 입력보다 늦게 따라온다 | `CPU`, `filterTime`, `searchMemory`, `resultLatency`, `skippedResults` |
-| S2 Advanced | 상품마다 소문자 이름의 UTF-16 배열을 한 번만 만들어 둔다. 검색어가 직전 검색어를 포함하면 직전 결과 안에서만 거르고, 지울 때는 검색어별 결과 스택을 되돌린다. 일치 위치는 화면에 보일 행만 UTF-16 배열에서 바로 구한다 (백그라운드 + 취소는 S1 유지) | 자료구조와 알고리즘 | 전처리 인덱스, 증분 검색(검색 공간 줄이기), UTF-16 오프셋 직접 계산, 지연 계산 | `filterTime`과 CPU가 크게 줄고 `resultLatency`도 줄어든다 | 인덱스 메모리(5만 개 이름의 UTF-16 사본), 결과 스택 메모리, 첫 화면 전 인덱스 생성 시간, 코드 복잡도 | `searchMemory`, `Memory`, `indexBuildTime`, 정성: 코드 복잡도 |
+| S2 Advanced | 상품마다 소문자 이름의 UTF-16 배열을 한 번만 만들어 둔다. 검색어가 직전 검색어를 포함하면 직전 결과 안에서만 거르고, 지울 때는 검색어별 결과 스택을 되돌린다. 일치 위치는 화면에 보일 행만 UTF-16 배열에서 바로 구한다 (백그라운드 + 취소는 S1 유지) | 자료구조와 알고리즘 | 전처리 인덱스, 증분 검색(검색 공간 줄이기), UTF-16 오프셋 직접 계산, 지연 계산 | `filterTime`과 CPU가 크게 줄고 `resultLatency`도 줄어든다 | 인덱스 메모리(5만 개 이름의 UTF-16 사본), 결과 스택 메모리, 화면을 연 뒤 첫 검색 전 인덱스 생성 시간, 코드 복잡도 | `searchMemory`, `Memory`, `indexBuildTime`, 정성: 코드 복잡도 |
 
 축: 자료구조와 알고리즘, 값 타입과 참조 타입, 메모리, 동시성, 구조, 렌더링, I/O (`docs/GUIDE.md` 3절)
 
 ## 정합성 기준
 
 - Stage마다 검색 로직을 UI와 분리된 타입으로 둔다 (`Stage0Search`, `Stage1Search`, `Stage2Search`). 화면 코드는 이 타입의 결과를 그리기만 한다.
-- 테스트에 가장 단순한 기준 구현(`String.ranges(of:)` 기반)을 두고, 각 Stage의 결과 `[SearchMatch]`가 기준 구현과 같은지 확인한다.
+- 테스트에 가장 단순한 기준 구현(소문자 이름의 `String.ranges(of:)` 기반)을 두고, 각 Stage의 결과 `[SearchMatch]`가 기준 구현과 같은지 확인한다.
   - `Scenario.typingScript`를 **순서대로** 모두 넣는다. 증분 검색(S2)이 입력과 삭제를 거쳐도 같은 결과를 내는지 확인하기 위해서다.
   - 대소문자 혼합("SPEAKER"), 공백 포함("미니 선풍기"), 한 이름에 여러 번 일치("하하"가 "하하상회 하하"에 2번)를 포함한다.
 - S2는 하이라이트를 보이는 행에만 계산하므로, 테스트에서는 모든 결과 행에 대해 위치 계산 함수를 호출해 비교한다.

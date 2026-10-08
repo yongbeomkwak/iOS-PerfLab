@@ -20,7 +20,7 @@ struct Stage1Search: Sendable {
         let rows: [Row]
         /// 거르기 + 위치 계산에 걸린 시간 (ms). 지표 기록은 메인 액터에서만 하므로 값으로 들고 간다.
         let filterTime: Double
-        /// 결과 배열 + 미리 계산한 일치 위치의 크기 추정치 (MB). 일치 위치 배열마다 붙는 힙 헤더는 빠진다.
+        /// 결과 배열 + 미리 계산한 일치 위치의 크기 추정치 (MB). 행마다 일치 위치 배열이 따로 있어 그 힙 헤더도 센다.
         let memory: Double
     }
 
@@ -37,7 +37,9 @@ struct Stage1Search: Sendable {
         let (rows, highlightCount) = try matches(for: query)
         let filterTime = (CACurrentMediaTime() - start) * 1000
         PerfSignpost.signposter.endInterval("filter", state)
-        let bytes = rows.count * MemoryLayout<Row>.stride + highlightCount * MemoryLayout<Range<Int>>.stride
+        let bytes =
+            rows.count * (MemoryLayout<Row>.stride + arrayHeaderBytes)
+            + highlightCount * MemoryLayout<Range<Int>>.stride
         return Output(rows: rows, filterTime: filterTime, memory: Double(bytes) / 1_048_576)
     }
 

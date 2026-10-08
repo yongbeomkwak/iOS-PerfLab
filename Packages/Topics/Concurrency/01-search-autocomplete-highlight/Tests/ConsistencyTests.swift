@@ -31,6 +31,40 @@ struct ConsistencyTests {
         await #expect(throws: CancellationError.self) { try await task.value }
     }
 
+    /// 입력 스크립트 순서대로 스택을 쌓고 되돌리며 검색해, 증분 검색과 스택 재사용이 매 단계 기준 구현과 같은지 본다.
+    @Test func stage2MatchesReference() async throws {
+        let index = await Stage2Index.build(from: products)
+        var stack = Stage2ResultStack()
+        try await replayTypingScript { query in
+            let key = Array(query.lowercased().utf16)
+            let output = try await Stage2Search.search(key, plan: stack.plan(for: key), index: index)
+            stack.push(query: output.query, positions: output.positions)
+            return output.positions.map {
+                SearchMatch(productID: products[$0].id, highlights: index.highlights(at: $0, query: key))
+            }
+        }
+    }
+
+    /// 화면은 취소된 검색을 스택에 쌓지 않는다. 중간 검색어를 건너뛰어도 결과가 같아야 한다.
+    @Test func stage2SkippingQueriesKeepsResults() async throws {
+        let index = await Stage2Index.build(from: products)
+        var stack = Stage2ResultStack()
+        // "풍" → "선풍" → "선풍기"는 접두사가 아닌 포함 관계로 좁힌다.
+        for query in ["보", "보조배", "보", "보조배터리", "보조", "풍", "선풍", "선풍기", "풍"] {
+            let key = Array(query.lowercased().utf16)
+            let output = try await Stage2Search.search(key, plan: stack.plan(for: key), index: index)
+            stack.push(query: output.query, positions: output.positions)
+            #expect(output.positions.map { products[$0].id } == referenceMatches(query).map(\.productID), "\(query)")
+        }
+    }
+
+    @Test func stage2StopsWhenCancelled() async {
+        let index = await Stage2Index.build(from: products)
+        let task = Task { try await Stage2Search.search(Array("a".utf16), plan: .full, index: index) }
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+    }
+
     @Test func referenceFindsEveryOccurrence() {
         let product = Product(id: 0, name: "하하상회 하하 Speaker")
         #expect(Self.highlights(in: product.name, query: "하하") == [0..<2, 5..<7])
@@ -51,7 +85,8 @@ struct ConsistencyTests {
         }
     }
 
-    /// 소문자 이름의 UTF-16 배열을 왼쪽부터 훑어 겹치지 않는 일치 위치를 모두 찾는 가장 단순한 구현.
+    /// 소문자 이름에서 `ranges(of:)`로 겹치지 않는 일치 위치를 모두 찾는 가장 단순한 구현.
+    /// Stage 구현과 다른 경로(String.Index → UTF-16 오프셋)로 구해 서로 독립적으로 검증한다.
     private func referenceMatches(_ query: String) -> [SearchMatch] {
         guard !query.isEmpty else { return [] }
         return products.compactMap { product in
@@ -61,18 +96,12 @@ struct ConsistencyTests {
     }
 
     private static func highlights(in name: String, query: String) -> [Range<Int>] {
-        let name = Array(name.lowercased().utf16)
-        let query = Array(query.lowercased().utf16)
-        var ranges: [Range<Int>] = []
-        var start = 0
-        while start + query.count <= name.count {
-            if name[start..<start + query.count].elementsEqual(query) {
-                ranges.append(start..<start + query.count)
-                start += query.count
-            } else {
-                start += 1
-            }
+        // 시나리오는 소문자로 바꿔도 UTF-16 길이가 같은 글자만 쓴다 (ScenarioTests에서 확인).
+        let name = name.lowercased()
+        return name.ranges(of: query.lowercased()).map {
+            name.utf16.distance(
+                from: name.startIndex, to: $0.lowerBound)..<name.utf16.distance(
+                    from: name.startIndex, to: $0.upperBound)
         }
-        return ranges
     }
 }
