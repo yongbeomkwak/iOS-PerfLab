@@ -2,15 +2,40 @@
 
 ## 측정 환경
 
-- 기기: iPhone 17 Pro 시뮬레이터 (iPhone18,1, iOS 26.5), Mac에서 실행. **실기기 측정 전이라 모든 수치는 참고용이다.**
-- 측정 명령: `scripts/perflab measure 01-search-autocomplete-highlight` (기기를 지정하지 않으면 시뮬레이터)
+- **정식 결과:** iPhone 14 실기기 (iPhone14,7, iOS 26.6.1), 화면 최대 60fps. 2026-10-11 측정.
+  - 측정 명령: `scripts/perflab measure 01-search-autocomplete-highlight --device "id=<기기 식별자>"`
+  - 결과 원본: `results/iPhone14,7/stage<N>-<framework>.json`
+- **참고용:** iPhone 17 Pro 시뮬레이터 (iPhone18,1, iOS 26.5), Mac에서 실행. 2026-10-08 측정.
+  - 결과 원본: `results/iPhone18,1-simulator/stage<N>-<framework>.json`
 - 빌드 구성: Release, warm-up 2초, 측정 10초, 조합마다 3회 반복의 중앙값, 빈 화면 baseline 포함
-- 결과 원본: `results/iPhone18,1-simulator/stage<N>-<framework>.json`
-- 시뮬레이터 화면은 최대 60fps라, 기대 프레임 시간은 16.7ms이고 그 1.5배(25ms)를 넘으면 hitch로 센다.
+- 두 기기 모두 최대 60fps라, 기대 프레임 시간은 16.7ms이고 그 1.5배(25ms)를 넘으면 hitch로 센다. 120Hz(ProMotion) 조건은 측정하지 않았다.
+- 아래 본문의 수치는 따로 밝히지 않으면 실기기 값이고, UIKit / SwiftUI 순서다.
 
 ## 결과
 
 <!-- perflab:results:start -->
+### iPhone14,7 (iOS 26.6.1, Release, max 60fps)
+
+측정 10초 × 3회 중앙값. Baseline은 부하 없는 빈 화면(측정 노이즈 바닥)이다.
+
+| 지표 | Baseline | UIKit S0 | UIKit S1 | UIKit S2 | SwiftUI S0 | SwiftUI S1 | SwiftUI S2 | 의미 |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| FPS avg | 60.0 | 27.3 | 60.0 | 60.0 | 11.6 | 60.1 | 52.5 | 1초에 메인 스레드가 처리한 프레임 수의 평균. 최대 주사율에 가까울수록 부드럽다 |
+| FPS min | 60.0 | 17.0 | 60.0 | 58.1 | 3.6 | 60.0 | 38.7 | 0.5초 구간 중 가장 낮았던 FPS. 순간적으로 가장 심하게 끊긴 정도 |
+| Hitch count | 0 | 91 | 0 | 1 | 65 | 0 | 33 | 프레임 간격이 기대 시간의 1.5배를 넘은 횟수. 적을수록 좋다 |
+| Hitch ratio (ms/s) | 0.0 | 533.7 | 0.0 | 1.3 | 800.6 | 0.0 | 132.2 | 기대 시간을 넘긴 시간의 합을 초당으로 나눈 값. 5 미만 양호, 10 이상 심각 (Apple 기준) |
+| CPU avg (%) | 0.9 | 71.2 | 86.6 | 29.9 | 90.9 | 87.3 | 37.1 | 프로세스 CPU 사용률 평균. 100% = 코어 1개를 다 씀. 일의 양을 보여 준다 |
+| CPU peak (%) | 1.4 | 92.5 | 102.1 | 36.9 | 100.2 | 101.5 | 58.7 | 0.5초 구간 중 가장 높았던 CPU 사용률 |
+| Memory avg (MB) | 17.8 | 35.4 | 30.9 | 39.0 | 43.9 | 31.9 | 46.3 | 앱이 실제로 쓰는 물리 메모리(physical footprint) 평균. iOS가 앱을 종료시키는 기준과 같다 |
+| Memory peak (MB) | 18.0 | 37.2 | 35.0 | 41.2 | 49.6 | 35.8 | 50.9 | 물리 메모리의 최대값 |
+| Threads peak | 11 | 11 | 12 | 13 | 12 | 11 | 11 | 프로세스 스레드 수의 최대값 |
+| filterTime (ms) | - | 65.50 | 65.28 | 1.69 | 69.32 | 64.59 | 0.85 | 실행 스레드와 관계없이 검색 한 번에 드는 계산량 (구간: 필터링 작업의 시작 → 끝) |
+| resultLatency (ms) | - | 65.94 | 65.59 | 5.12 | 72.91 | 66.05 | 8.44 | 결과가 얼마나 늦게 갱신됐나 ("갱신이 늦는다") (구간: 입력 시점 → 그 검색어의 결과를 목록 데이터에 적용한 시점) |
+| skippedResults (%) | - | 0.00 | 52.00 | 0.00 | 0.00 | 53.00 | 0.00 | 다음 입력에 밀려 화면에 한 번도 나오지 못한 검색어 비율 |
+| searchMemory (MB) | - | 0.13 | 0.14 | 3.79 | 0.14 | 0.14 | 3.79 | 검색을 위해 들고 있는 자료구조의 크기 추정치: 결과 배열 + 미리 계산한 일치 위치 + 인덱스 + 결과 스택 |
+| indexBuildTime (ms) | - | 0.00 | 0.00 | 42.75 | 0.00 | 0.00 | 37.54 | 첫 검색 결과 전에 한 번 드는 준비 비용 (구간: 화면을 연 직후 백그라운드 검색 준비 작업의 시작 → 끝) |
+| inputDelay (ms) | - | 85.87 | 31.81 | 28.06 | 161.30 | 27.91 | 29.77 | 입력이 화면에 얼마나 늦게 반영됐나 ("글자가 늦게 찍힌다") (구간: 입력 예정 시각 → 그 입력을 처리한 뒤 첫 프레임이 화면에 나갈 시각) |
+
 ### iPhone18,1 (iOS 26.5, Simulator, Release, max 60fps)
 
 측정 10초 × 3회 중앙값. Baseline은 부하 없는 빈 화면(측정 노이즈 바닥)이다.
@@ -38,69 +63,85 @@
 
 ## 예측 vs 실제
 
-| 항목 | 사용자 예측 | 실제 (시뮬레이터, 참고용) | 차이 원인 |
+| 항목 | 사용자 예측 | 실제 (iPhone 14) | 차이 원인 |
 |---|---|---|---|
-| [Plan] 병목 | "글자가 늦게 찍힌다, 갱신이 늦는다, 검색과 후보 리스트 싱크가 순간적으로 안 맞는다" | S0 `inputDelay` UIKit 57.9ms / SwiftUI 63.6ms, hitch 483.7 / 563.3ms/s | 예측대로다. 메인 스레드가 입력마다 약 46ms 거르기를 하느라 글자 표시와 그리기가 함께 밀렸다 |
-| [Stage 0] 메인에서 거르면 | "i가 찍히는 main thread 작업이 뒤로 밀려 행이 발생" / "CPU 사용률이 올라갈 것" | FPS avg 29.6 / 24.5, CPU avg 52.4% / 63.8% | 행(멈춤)은 맞다. CPU는 코어 하나를 절반쯤 쓰는 수준이고, 핵심은 CPU 양보다 메인 스레드를 막는다는 점이다 |
-| [Stage 1] `resultLatency` | 줄어들 것 | UIKit 46.7 → 58.8ms, SwiftUI 48.5 → 60.4ms (↑) | 계산량은 그대로이고, 결과 전체의 위치를 미리 구하는 일과 백그라운드 경합이 더해졌다. 일을 옮겼을 뿐 줄이지 않았다 |
-| [Stage 1] 대가 | CPU | CPU avg 52.4 → 68.2% / 63.8 → 76.9% (↑), `skippedResults` 13% / 16% | 맞다. 결과 전체의 위치 계산과 취소된 검색 비용이 더해졌다. 따라잡지 못한 검색어는 화면에 나오지 못했다 |
-| [Measure] S2 `resultLatency`, UIKit vs SwiftUI | UIKit이 짧을 것 | UIKit 2.33ms, SwiftUI 5.12ms | 맞다. 다만 이 지표는 결과를 `@State`에 넣는 순간까지라 SwiftUI `List`의 비교 비용은 들어 있지 않다. 차이는 SwiftUI가 바인딩 변경을 `onChange`로 다음 갱신에서 넘겨주는 데서 온다 |
-| [Measure] Memory peak S0 → S2 | S2로 갈수록 높아짐, 추정치와 비교는 모르겠음 | UIKit 54.8 → 54.6 → 58.4MB, SwiftUI 64.8 → 63.0 → 70.2MB | S2에서 오른 것은 맞다. S1은 S0과 같았다. S1 → S2 증가는 UIKit 3.8MB로 `searchMemory` 차이(3.46MB)와 비슷하고, SwiftUI는 7.2MB로 두 배쯤이다 |
-| [Measure] Threads peak | S0이 가장 적고 S1, S2는 비슷 | 중앙값 S0 10 / 11, S1 10 / 10, S2 24 / 10 | S1과 S2 SwiftUI는 S0과 같은 수준이다. UIKit S2의 24는 3회 중 2회가 튄 값이고, baseline도 한 번 21까지 튀어 측정 잡음으로 본다 (아래 분석) |
+| [Plan] 병목 | "글자가 늦게 찍힌다, 갱신이 늦는다, 검색과 후보 리스트 싱크가 순간적으로 안 맞는다" | S0 `inputDelay` 85.9 / 161.3ms, hitch 533.7 / 800.6ms/s | 예측대로다. 메인 스레드가 입력마다 약 65~69ms 거르기를 하느라 글자 표시와 그리기가 함께 밀렸다 |
+| [Stage 0] 메인에서 거르면 | "i가 찍히는 main thread 작업이 뒤로 밀려 행이 발생" / "CPU 사용률이 올라갈 것" | FPS avg 27.3 / 11.6, CPU avg 71.2 / 90.9% | 행(멈춤)은 맞다. CPU도 높지만 핵심은 그 일이 메인 스레드를 막는다는 점이다 |
+| [Stage 1] `resultLatency` | 줄어들 것 | 65.9 → 65.6ms / 72.9 → 66.1ms (그대로), `skippedResults` 0 → 52 / 53% | 계산량이 그대로라 줄지 않았다. 게다가 절반이 넘는 검색어는 결과가 아예 나오지 못했다 |
+| [Stage 1] 대가 | CPU | CPU avg 71.2 → 86.6% (UIKit ↑), 90.9 → 87.3% (SwiftUI →) | UIKit은 맞다. SwiftUI는 S0이 이미 코어 하나를 거의 다 쓰고 있어 차이가 없었다 |
+| [Measure] S0 `filterTime`, 실기기 vs 시뮬레이터 | "작아진다. 100ms 넘으면 inputDelay도 늦어진다" | 46.1 → 65.5ms / 46.0 → 69.3ms (커짐) | 시뮬레이터는 Mac의 CPU로 돈다. iPhone 14가 이 계산에서 약 1.4배 느렸다. 평균은 100ms를 넘지 않았지만 SwiftUI S0의 `inputDelay`는 161.3ms로 입력 간격보다 커졌다 |
+| [Measure] S1 `skippedResults`, 실기기 vs 시뮬레이터 | "커질 것 같아. 시뮬레이터보다는 실기기가 더 빠르게 반응해서 더 많아질 것 같아" | 13 → 52% / 16 → 53% | 방향은 맞고 이유는 반대다. 실기기가 더 느려서, 다음 입력(100ms)이 오기 전에 끝나지 못한 검색이 늘었다 |
+| [Measure] S2 hitch가 S1보다 많은 현상 | "비슷하게 나올 것 같아. 이유는 잘 모르겟어" | UIKit 0.0 → 1.3ms/s (사라짐), SwiftUI 0.0 → 132.2ms/s (남음) | UIKit의 시뮬레이터 hitch(105.6ms/s)는 실기기에서 재현되지 않았다. SwiftUI만 남아, 원인은 검색 로직이 아니라 SwiftUI의 목록 갱신 쪽이다 (아래 분석) |
+| [Measure] S2 `resultLatency`, UIKit vs SwiftUI | UIKit이 짧을 것 | 5.12ms / 8.44ms | 맞다. 이 지표는 결과를 `@State`에 넣는 순간까지라 SwiftUI `List`의 갱신 비용은 들어 있지 않다 |
+| [Measure] Memory peak S0 → S2 | S2로 갈수록 높아짐, 추정치와 비교는 모르겠음 | 37.2 → 35.0 → 41.2MB / 49.6 → 35.8 → 50.9MB | S2가 가장 높은 것은 맞다. S1은 오히려 S0보다 낮았다. 결과의 절반이 화면에 적용되지 못해 목록이 들고 있는 행이 적었기 때문으로 보인다 |
+| [Measure] Threads peak | S0이 가장 적고 S1, S2는 비슷 | 11 / 12, 12 / 11, 13 / 11 | 세 Stage가 모두 11~13개로 같다. 백그라운드 Task는 이미 있는 공용 스레드 풀에서 돈다 |
 
 ## 대가
 
-PLAN.md의 대가 지표로 각 Stage가 얻은 것과 잃은 것을 비교한다. 수치는 UIKit / SwiftUI 순서다.
+PLAN.md의 대가 지표로 각 Stage가 얻은 것과 잃은 것을 비교한다.
 
 | Stage | 대가 | 지표 | S0 대비 | 얻은 것 |
 |---|---|---|---|---|
-| S1 | 계산량은 그대로이고 결과 전체 위치를 미리 계산 | `CPU` avg | 52.4 → 68.2% / 63.8 → 76.9% | 메인 스레드 분리: `inputDelay` 57.9 → 12.0ms / 63.6 → 10.3ms, hitch 483.7 → 0.0 / 563.3 → 40.4ms/s |
-| S1 | 검색 한 번이 더 오래 걸림 | `filterTime` | 46.1 → 58.2ms / 46.0 → 58.5ms | |
-| S1 | 결과가 입력보다 늦게 따라옴 | `resultLatency` | 46.7 → 58.8ms / 48.5 → 60.4ms | |
-| S1 | 화면에 한 번도 나오지 못한 검색어 | `skippedResults` | 0 → 13% / 0 → 16% | |
-| S1 | 미리 계산한 일치 위치 | `searchMemory` | 0.13 → 0.33MB / 0.14 → 0.31MB | |
-| S2 | 인덱스 + 결과 스택 | `searchMemory` | 0.13 → 3.79MB / 0.14 → 3.79MB | 계산량 감소: `filterTime` 0.73 / 0.35ms, `resultLatency` 2.33 / 5.12ms, CPU avg 15.2 / 24.0%, `skippedResults` 0% |
-| S2 | 실제 메모리 증가 | `Memory` peak | 54.8 → 58.4MB / 64.8 → 70.2MB | |
-| S2 | 화면을 연 뒤 첫 검색 전 준비 시간 | `indexBuildTime` | 0 → 25.2ms / 0 → 24.5ms | |
+| S1 | 계산량은 그대로 | `CPU` avg | 71.2 → 86.6% / 90.9 → 87.3% | 메인 스레드 분리: `inputDelay` 85.9 → 31.8ms / 161.3 → 27.9ms, hitch 533.7 → 0.0 / 800.6 → 0.0ms/s |
+| S1 | 검색 한 번의 시간은 줄지 않음 | `filterTime` | 65.5 → 65.3ms / 69.3 → 64.6ms | |
+| S1 | 결과가 입력보다 늦게 따라옴 | `resultLatency` | 65.9 → 65.6ms / 72.9 → 66.1ms | |
+| S1 | 화면에 한 번도 나오지 못한 검색어 | `skippedResults` | 0 → 52% / 0 → 53% | |
+| S1 | 미리 계산한 일치 위치 | `searchMemory` | 0.13 → 0.14MB / 0.14 → 0.14MB | |
+| S2 | 인덱스 + 결과 스택 | `searchMemory` | 0.13 → 3.79MB / 0.14 → 3.79MB | 계산량 감소: `filterTime` 1.69 / 0.85ms, `resultLatency` 5.12 / 8.44ms, CPU avg 29.9 / 37.1%, `skippedResults` 0% |
+| S2 | 실제 메모리 증가 | `Memory` peak | 37.2 → 41.2MB / 49.6 → 50.9MB | |
+| S2 | 화면을 연 뒤 첫 검색 전 준비 시간 | `indexBuildTime` | 0 → 42.8ms / 0 → 37.5ms | |
 | S2 | 코드 복잡도 (정성) | - | 검색 타입 1개 → 3개 (`Stage2Index`, `Stage2ResultStack`, `Stage2Search`), 스택 불변식 관리 | |
-| S2 | (계획에 없던 대가) S1보다 hitch 증가 | `Hitch` ratio | S1 0.0 → 105.6ms/s, 40.4 → 101.3ms/s | 원인 미확정. 아래 분석의 가설 참고 |
+| S2 | (계획에 없던 대가, SwiftUI만) S1보다 hitch 증가 | `Hitch` ratio | S1 0.0 → 132.2ms/s (SwiftUI). UIKit은 0.0 → 1.3ms/s로 대가 없음 | 원인 미확정. 아래 분석의 가설 참고 |
+
+`searchMemory`와 `resultLatency`는 **화면에 적용된 결과만** 기록한다. S1은 절반이 넘는 검색어가 적용되지 못했으므로, S1의 두 값은 살아남은 검색어만의 평균이다.
 
 ## 분석
 
-**S0: 메인 스레드가 막힌다.** 입력이 100ms마다 오고, 메인 스레드는 입력마다 5만 개 이름을 `lowercased()`로 새로 만들어 `contains`로 비교한다 (`filterTime` 약 46ms).
-그동안 프레임을 그리지 못해 hitch ratio가 483.7 / 563.3ms/s, FPS가 절반 아래(29.6 / 24.5)로 떨어진다.
-1초에 입력 10번 × 약 48ms씩 밀린 프레임이 쌓인 값이라, hitch ratio가 입력 간격보다 큰 것이 자연스럽다.
+**S0: 메인 스레드가 막힌다.** 입력이 100ms마다 오고, 메인 스레드는 입력마다 5만 개 이름을 `lowercased()`로 새로 만들어 `contains`로 비교한다 (`filterTime` 65.5 / 69.3ms).
+그동안 프레임을 그리지 못해 hitch ratio가 533.7 / 800.6ms/s, FPS avg가 27.3 / 11.6으로 떨어진다.
+SwiftUI가 더 나쁘다. 거르는 시간은 비슷한데(65.5 vs 69.3ms) hitch ratio는 1.5배이고 `inputDelay`가 161.3ms로 입력 간격(100ms)을 넘는다.
+입력 하나를 처리하는 메인 스레드 작업이 거르기 외에도 더 있어, 다음 입력이 올 때까지 끝나지 못하고 밀려 쌓인 것이다. 그 추가 작업이 무엇인지는 Instruments로 확인하지 않았다.
 
-**S1: 메인은 비었지만 일은 줄지 않았다.** 같은 계산을 백그라운드로 옮기자 UIKit hitch가 0, `inputDelay`가 12.0ms로 내려갔다.
-대신 `filterTime`(58ms)과 `resultLatency`(59ms)는 오히려 늘었고 CPU도 올랐다. 결과 전체의 위치를 미리 구하는 일이 더해졌고, 메인 스레드와 코어를 나눠 썼기 때문이다.
-`resultLatency`는 적용된 결과만 평균하므로, 13~16%의 검색어가 화면에 나오지 못한 사실(`skippedResults`)과 함께 읽어야 한다.
-SwiftUI S1의 hitch 40.4ms/s는 결과를 적용할 때 `List`가 최대 2만 개 id를 비교하는 비용이 메인 스레드에 남아 있기 때문으로 보인다 (Instruments로 확인하지는 않았다).
+**S1: 메인은 비었지만 일은 줄지 않았다.** 같은 계산을 백그라운드로 옮기자 hitch가 두 프레임워크 모두 0, FPS가 60이 됐고 `inputDelay`가 31.8 / 27.9ms로 내려갔다.
+하지만 `filterTime`(65.3 / 64.6ms)은 S0과 같고, CPU도 줄지 않았다 (86.6 / 87.3%, peak 102.1 / 101.5%로 코어 하나를 다 쓴다).
+가장 큰 대가는 `skippedResults` 52 / 53%다. **입력한 검색어의 절반 이상이 결과를 한 번도 보여 주지 못했다.**
+- `filterTime` 평균이 65ms인데 절반이 버려지는 이유: 이 지표는 끝까지 계산을 마친 검색만 기록한다. 100ms 안에 끝나지 못해 취소된 검색은 평균에 들어가지 않는다.
+  즉 65ms는 "빨리 끝나 살아남은 검색"의 평균이고, 오래 걸리는 검색어는 통째로 빠져 있다. 평균만 보면 S1이 실제보다 좋아 보인다.
+- 시뮬레이터에서는 13 / 16%였다. 계산이 약 1.4배 느려지자 100ms 경계를 넘는 검색어가 크게 늘었다. 기기 속도에 따라 사용자 경험이 급격히 달라지는 구조다.
 
-**S2: 일 자체를 줄였다.** 인덱스로 이름 변환이 사라지고 비교가 숫자 배열 비교가 되면서 `filterTime`이 0.73 / 0.35ms가 됐다. CPU는 15.2 / 24.0%로 S0의 1/3 이하다.
-- `filterTime` 평균은 경로가 섞인 값이다. 스크립트 62단계 중 23단계(지우기)는 스택의 결과를 다시 쓰는 reuse라 계산이 없다.
-  같은 일끼리 비교하면, Mac에서 5만 개 전체를 훑는 경우 S1 방식 40~63ms가 0.6ms였다 (LEARNING [Stage 2]의 마이크로 측정, 정식 아님).
-- 효과의 대부분은 인덱스(이름 변환 제거, UTF-16 비교)에서 나왔다. 검색어 소문자 변환을 루프 밖으로 뺀 효과는 긴 검색어에서만 약 13%였다.
-- 대가로 메모리가 늘었다. UIKit의 `Memory` 증가(3.8MB)는 `searchMemory` 추정 차이(3.46MB)와 비슷해, 이름 5만 개의 UTF-16 사본과 배열 헤더가 증가분의 대부분이다.
-  SwiftUI는 7.2MB로 추정치의 약 두 배다. `List`와 `AttributedString` 쪽 메모리일 수 있지만 Allocations로 확인하지 않았다.
+**S2: 일 자체를 줄였다.** 인덱스로 이름 변환이 사라지고 비교가 숫자 배열 비교가 되면서 `filterTime`이 1.69 / 0.85ms가 됐다. CPU는 29.9 / 37.1%로 S1의 절반 이하이고, 버려지는 검색어가 없다(`skippedResults` 0%).
+- `filterTime` 평균은 경로가 섞인 값이다. 스크립트 62단계 중 23단계(지우기)는 스택의 결과를 다시 쓰는 reuse라 계산이 없다. S1의 65ms와 평균끼리 비교하면 개선을 부풀린다.
+- 대가로 메모리가 늘었다. `searchMemory`가 0.13 → 3.79MB이고, 실제 `Memory` peak는 S0 대비 +4.0MB(UIKit), +1.3MB(SwiftUI)다. 준비 시간(`indexBuildTime`)은 42.8 / 37.5ms로 시뮬레이터(25.2 / 24.5ms)보다 길다.
+- S1 대비 `Memory` peak 증가는 +6.2MB / +15.1MB로 `searchMemory` 차이(3.65MB)보다 크다. S1은 큰 결과가 화면에 적용되지 못해 메모리가 낮게 나온 것으로 보이며, 두 Stage의 차이를 인덱스 크기만으로 읽으면 안 된다.
 
-**S2의 hitch가 S1보다 늘었다.** CPU는 줄었는데 hitch ratio가 0.0 → 105.6ms/s(UIKit), 40.4 → 101.3ms/s(SwiftUI)로 늘었다. 원인은 확정하지 못했고 가설은 두 가지다.
-- (a) **낮은 부하에서 메인 스레드가 느려진다.** Time Profiler에서 셀 수는 비슷한데(highlight signpost 2,184 vs 2,436) 같은 셀 생성 코드가 고르게 약 3배 느렸다.
-  전체 CPU 사용이 낮으면 코어 클럭이 낮게 머물거나 효율 코어에서 실행될 수 있다. Mac에 CPU 부하를 걸자 UIKit hitch가 줄었다 (89 → 39ms/s, 진단용).
-- (b) **입력 갱신과 목록 갱신이 한 프레임에 몰린다.** S2는 결과가 입력 2~5ms 뒤에 도착해, 입력창 갱신과 목록 갱신이 같은 프레임에 들어간다.
-  S1은 약 60ms 뒤라 둘이 다른 프레임으로 나뉘었다. CPU 부하를 걸어도 그대로였던 SwiftUI에 더 맞는 설명이다.
-- 실기기 측정과 Instruments(CPU 코어 배치, Animation Hitches)로 확인한 뒤 결론을 낸다.
+**S2의 hitch: UIKit은 사라지고 SwiftUI에만 남았다.** 시뮬레이터에서는 두 프레임워크 모두 S2가 S1보다 hitch가 많았다 (105.6 / 101.3ms/s). 실기기에서는 UIKit 1.3ms/s, SwiftUI 132.2ms/s다.
+- UIKit: 시뮬레이터의 hitch는 실기기에서 재현되지 않았다. 결과가 입력 5ms 뒤에 도착해 입력창 갱신과 목록 갱신이 같은 프레임에 들어가는 것은 실기기도 같으므로,
+  "한 프레임에 몰려서"라는 가설 (b)는 UIKit의 원인이 아니었다. 시뮬레이터 환경에서 생긴 현상으로 본다 (가설 (a)가 맞는지는 확인하지 않았다).
+- SwiftUI: 3회 모두 hitch가 32~34회, 127.9~132.8ms/s로 일정하게 나왔다. 검색 로직은 UIKit과 같으므로 원인은 결과를 화면에 적용하는 쪽에 있다.
+  UIKit의 `reloadData`는 행 수만 다시 묻고 보이는 셀만 만든다. SwiftUI `List`는 결과가 바뀔 때 id 전체(최대 2만여 개)를 이전과 비교해 바뀐 행을 찾는다. 이 비용이 메인 스레드에서 프레임 예산을 넘긴다는 것이 가설이다.
+- 같은 SwiftUI인 S1은 hitch가 0이었다. S1은 결과의 절반이 적용되지 못했고 `searchMemory`가 0.14MB로 작아, 큰 결과가 화면에 거의 적용되지 않았을 가능성이 있다. S2는 모든 결과를 적용한다.
+  즉 S2는 "빨라져서 드러난 다음 병목"을 보여 준다. 다만 Instruments로 확인하지 않은 가설이다.
 
-**Threads peak은 이 측정에서 신뢰하기 어렵다.** 3회 값이 baseline [8, 9, 21], UIKit S0 [23, 10, 10], UIKit S1 [10, 30, 9], UIKit S2 [25, 10, 24]처럼 Stage와 상관없이 한 번씩 튄다.
-튀지 않은 값은 모든 조합에서 9~13개다. 백그라운드 Task를 쓰는 S1, S2도 S0보다 스레드가 늘지 않았다. Swift Concurrency가 코어 수만큼의 공용 스레드 풀에서 작업을 돌리기 때문이다.
+**Threads peak.** 실기기에서는 모든 조합이 11~13개였다. 3회 값 중 한 번씩 15~18개로 튄 조합이 있어 편차 경고가 났지만, 시뮬레이터처럼 20개를 넘는 값은 없었다.
+백그라운드 Task를 쓰는 S1, S2도 S0보다 스레드가 늘지 않았다. Swift Concurrency가 코어 수만큼의 공용 스레드 풀에서 작업을 돌리기 때문이다.
 
-**편차 경고.** 측정 도구가 Threads peak(baseline, UIKit S0, UIKit S1), FPS min(S0 두 조합), Hitch count(SwiftUI S1)에 편차 경고를 냈다.
-FPS min과 Hitch count는 S0처럼 프레임이 크게 흔들리는 조합에서 자연스러운 편차다. 결론에는 중앙값이 안정적인 FPS avg, hitch ratio, CPU, Memory를 주로 썼다.
+**편차 경고.** Threads peak 3건(SwiftUI S0, UIKit S1, UIKit S2)과 FPS min 1건(UIKit S0: 17.0, 12.0, 19.0)이 나왔다.
+결론에 쓴 FPS avg, hitch ratio, CPU, Memory는 3회 값이 거의 같아 다시 측정하지 않았다.
+
+**실기기와 시뮬레이터의 차이.** 시뮬레이터 수치로 내렸다면 틀렸을 결론이 두 가지다.
+- "S1에서 버려지는 검색어는 13% 정도다" → 실기기는 52%다.
+- "S2는 UIKit에서도 hitch가 늘어난다" → 실기기 UIKit은 늘지 않았다.
 
 ## Instruments 관찰
 
-시뮬레이터 Release 빌드를 `xctrace`의 Time Profiler로 10초씩 기록한 결과다 (참고용).
+실기기에서는 Instruments로 확인하지 않았다. 다음 항목이 가설로 남아 있다.
+
+- SwiftUI S2 hitch의 출처: Time Profiler나 SwiftUI instrument로 결과 적용 직후 메인 스레드가 `List` 갱신에 쓰는 시간, Animation Hitches로 hitch가 결과 적용 프레임에 몰리는지.
+- SwiftUI S0에서 거르기 외에 메인 스레드를 막는 작업.
+- S1, S2의 Memory 차이: Allocations로 목록이 들고 있는 행과 인덱스의 실제 크기.
+
+아래는 시뮬레이터 Release 빌드를 `xctrace`의 Time Profiler로 10초씩 기록한 결과다 (참고용, 2026-10-08).
 
 - **S0 UIKit:** 메인 스레드 시간의 약 25%가 `lowercased()`, 약 45%가 `contains`(Foundation `StringProtocol.contains`), 약 14%가 CA commit이었다.
 - **S1 vs S2 UIKit:** 메인 스레드 샘플(1ms 단위)이 S1 748 → S2 1,342개였다. `cellForRowAt`이 91 → 314샘플인데, 지연 하이라이트 계산(`Stage2Index.highlights`)은 1샘플뿐이었다.
   `UIFont.bold` getter(8 → 35), UIKit 내부 프레임처럼 S1과 같은 코드가 고르게 약 3배 느렸다. signpost 개수(applyResults 184 vs 200, highlight 2,184 vs 2,436)는 비슷해 일의 양은 같았다.
-- 실기기에서 확인할 것: Animation Hitches로 S2 hitch가 입력 프레임에 몰리는지, CPU 코어 배치(성능/효율 코어), SwiftUI S2의 Allocations.
