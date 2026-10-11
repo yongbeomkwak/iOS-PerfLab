@@ -31,7 +31,7 @@ Stage 0~2는 검증 과정이 생기기 전에 구현됐다. 아래 세 섹션�
 
 - 대상: `docs/PLAN.md`, `Model.swift`, `Scenario.swift`, `TypingPlayer.swift`, `Topic.swift`, `Search/Stage0/Stage0Search.swift`, `UIKit/Stage0ViewController.swift`, `SwiftUI/Stage0View.swift`, `Tests/ScenarioTests.swift`, `Tests/ConsistencyTests.swift`, `results/iPhone14,7/stage0-*.json`, `results/iPhone18,1-simulator/stage0-*.json`, Shared의 `PerfMonitor.swift`, `CustomMetricRecorder.swift`, `PerfTopic.swift`, `TopicContainerView.swift`
 - 판정: ✅ 20건 · ⚠️ 4건 · ❌ 1건
-- 실험 환경: Mac(arm64), Swift 6.2.1, `swiftc -O -swift-version 6`. 스크립트는 `/private/tmp/claude-504/-Users-hamp-Desktop-iOS-PerfLab/599c40c9-2752-4334-91f7-4910c391d91b/scratchpad/verify/` 아래 `a/`(레이아웃, 문자열), `b/`(오버로드), `c/`(동시성), `h/`(주제 소스 사본으로 만든 하니스)에 있다. 주제 테스트는 `scripts/perflab test 01-search-autocomplete-highlight`로 돌려 통과했다 (`Topic01SearchAutocompleteHighlightTests 통과`, exit 0).
+- 실험 환경: Mac(arm64), Swift 6.2.1, `swiftc -O -swift-version 6`. 스크립트는 검증용 임시 폴더(저장소에 남기지 않는다) 아래 `a/`(레이아웃, 문자열), `b/`(오버로드), `c/`(동시성), `h/`(주제 소스 사본으로 만든 하니스)에 있다. 주제 테스트는 `scripts/perflab test 01-search-autocomplete-highlight`로 돌려 통과했다 (`Topic01SearchAutocompleteHighlightTests 통과`, exit 0).
 
 | # | 위치 | 주장 | 판정 | 근거 | 조치 |
 |---|---|---|---|---|---|
