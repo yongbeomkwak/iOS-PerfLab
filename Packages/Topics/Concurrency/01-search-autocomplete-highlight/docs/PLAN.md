@@ -71,7 +71,14 @@
 
 - 시간 지표는 원래 하는 작업의 앞뒤에서 시각만 읽는다. `resultLatency`의 시작점은 입력이 들어온 순간(UIKit 입력 이벤트, SwiftUI 바인딩 set)이다.
 - 대가 지표(`searchMemory`, `indexBuildTime`)는 모든 Stage가 기록한다.
-- `searchMemory`는 자료구조를 만드는 반복문 안에서 원소 수만 더해 `원소 수 × MemoryLayout.stride`(문자열 사본은 UTF-16 길이 × 2바이트)로 계산한다.
+- **취소가 있는 Stage(S1, S2)의 평균은 살아남은 검색만 담는다.** `filterTime`은 계산을 끝낸 검색만, `resultLatency`와 `searchMemory`는 화면에 적용된 검색만 기록한다.
+  계산 도중 취소된 검색은 어느 평균에도 들어가지 않는다. 오래 걸리는(결과가 큰) 검색어일수록 밀려나므로, `skippedResults`가 높으면 세 값 모두 실제보다 작게 나온다.
+  S0과 비교할 때는 반드시 `skippedResults`와 함께 읽는다 (VERIFICATION 1-10, 1-12).
+- `inputDelay`의 끝점은 입력을 처리한 뒤 첫 display link 콜백이 알려 주는 프레임 시각이다. 메인 스레드가 막혀 콜백이 늦으면 그 시각이 이미 지나 있으므로, 지금 이후의 첫 프레임 경계로 올린다 (`PerfMonitor.nextPresentation`, VERIFICATION 0-8).
+  콜백이 프레임 경계 직전에 불리면 한 프레임 미만으로 짧게 잡힐 수 있고, SwiftUI에서 `onChange` 처리가 그 콜백보다 앞선다는 것은 시뮬레이터에서만 확인했다 (VERIFICATION R-23).
+- `searchMemory`는 `버퍼 크기 × MemoryLayout.stride`(문자열 사본은 UTF-16 길이 × 2바이트)로 계산한다.
+  버퍼 크기는 `filter`가 `append`로 키운 배열(S0 결과, S2 결과 스택)은 `capacity`, 개수에 맞춰 만든 배열(S1의 `map` 결과, S2 인덱스)은 원소 수다.
+  `append`로 자라는 배열은 용량을 약 2배씩 늘려서, 원소 수로 세면 실제 버퍼의 절반만 잡힐 수 있다 (VERIFICATION 0-13).
   배열이 여러 개인 구조(S1 행마다의 일치 위치, S2 이름마다의 인덱스, 스택 항목)는 배열마다 힙 버퍼 헤더 32바이트를 더한다.
   할당기 오버헤드는 빠지므로 추정치이고, 실제 상주 메모리는 공통 지표 `Memory`로 함께 본다. 해당 구조가 없는 Stage는 그 항목을 0으로 센다.
 - 셀마다의 하이라이트 생성 시간은 지표로 남기지 않고 signpost `highlight`로 Instruments에서 본다. 셀마다 기록하면 기록 자체가 부하가 된다.

@@ -28,8 +28,10 @@ struct Stage1Search: Sendable {
 
     /// 결과를 계산한다. 새 입력에 밀려 Task가 취소되면 `CancellationError`를 던지고 중간에 멈춘다.
     ///
-    /// @concurrent: 부른 쪽이 메인 액터여도 이 함수는 메인이 아닌 공용 스레드 풀에서 실행된다.
-    /// 메인 스레드는 그동안 입력과 그리기를 계속 처리한다.
+    /// 메인 액터에서 불러도 이 함수는 메인이 아닌 공용 스레드 풀에서 실행된다. 메인 스레드는 그동안 입력과 그리기를 계속 처리한다.
+    ///
+    /// @concurrent: 지금 설정에서는 액터에 묶이지 않은 async 함수가 원래 메인 밖에서 돌아서, 이 속성이 없어도 동작은 같다.
+    /// "부른 쪽 액터에서 실행"이 기본값이 되는 설정(NonisolatedNonsendingByDefault)을 켜도 백그라운드 실행을 지키려고 명시한다.
     @concurrent
     func search(_ query: String) async throws -> Output {
         let state = PerfSignpost.signposter.beginInterval("filter")

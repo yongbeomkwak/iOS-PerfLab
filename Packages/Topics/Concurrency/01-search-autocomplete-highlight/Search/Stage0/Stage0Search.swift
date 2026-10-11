@@ -28,7 +28,8 @@ struct Stage0Search {
 
     /// 결과 배열이 차지하는 크기 추정치 (MB). Stage 0은 인덱스나 미리 계산한 위치가 없다.
     static func memory(of results: [Product]) -> Double {
+        // capacity: 배열이 잡아 둔 버퍼의 원소 수. filter는 append로 버퍼를 키워서 count보다 최대 2배쯤 크다 ("하하" 결과: count 11,490, capacity 21,844).
         // MemoryLayout.stride: 배열에서 원소 하나가 차지하는 바이트 수. String은 내부 포인터 크기만 세므로 추정치다.
-        Double(results.count * MemoryLayout<Product>.stride) / 1_048_576
+        Double(results.capacity * MemoryLayout<Product>.stride) / 1_048_576
     }
 }

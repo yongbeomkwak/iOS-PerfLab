@@ -23,7 +23,7 @@ struct Stage0View: View {
             Text("\(results.count)건")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            // List: 보이는 행만 만드는 지연 목록. results의 id를 이전과 비교해 바뀐 행을 찾는다.
+            // List: 보이는 행만 만드는 지연 목록. 결과가 2만 개여도 행 클로저는 화면에 보이는 만큼만 불린다.
             List(results) { product in
                 Text(highlightedName(product.name))
             }

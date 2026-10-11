@@ -4,7 +4,8 @@ import SwiftUI
 // 전략: 소문자 UTF-16 인덱스를 미리 만들고, 앞 검색어의 결과 안에서만 거르며(지우면 결과 스택을 되돌림),
 //   일치 위치는 보이는 행만 구한다. 백그라운드 Task + 취소는 Stage 1과 같다.
 // 변경: Stage 1의 5만 개 lowercased() + contains를 인덱스 + 증분 검색으로, 결과 전체 위치 계산을 행 단위 지연 계산으로 바꿨다.
-//   검색어 소문자 변환은 입력당 한 번으로, 결과는 상품 위치(Int) 배열로 바뀌었다.
+//   일치 위치는 range(of:) + String.Index 변환 대신 UTF-16 배열을 직접 비교해 구한다.
+//   검색어 소문자 변환은 입력당 한 번으로, 결과는 상품 위치(Int) 배열(행의 id도 위치 값)로 바뀌었다.
 struct Stage2View: View {
     let context: TopicContext
     private let products = Scenario.products
@@ -14,7 +15,7 @@ struct Stage2View: View {
     @State private var positions: [Int] = []
     /// 결과와 함께 바뀌는 소문자 UTF-16 검색어. 행의 일치 위치 계산에 쓴다.
     @State private var appliedQuery: [UInt16] = []
-    /// 화면을 다시 그릴 필요가 없는 검색 상태(진행 중인 Task, 인덱스, 결과 스택). Stage 1처럼 참조 타입 상자에 둔다.
+    /// 화면을 다시 그리는 것과 무관한 검색 상태(진행 중인 Task, 인덱스, 결과 스택).
     @State private var state = SearchState()
 
     // MARK: - Lifecycle
@@ -38,7 +39,8 @@ struct Stage2View: View {
         .padding(.top, 8)
         .onChange(of: query) { submit(query, inputTime: inputTime) }
         .task {
-            state.buildIndex(from: products)
+            // 처음 읽는 순간 인덱스 생성이 시작된다 (lazy).
+            _ = state.indexTask
             if context.isBenchmark { await play() }
         }
         .onDisappear { state.searchTask?.cancel() }
@@ -56,7 +58,7 @@ struct Stage2View: View {
     }
 
     private func submit(_ query: String, inputTime: CFTimeInterval) {
-        guard let indexTask = state.indexTask else { return }
+        let indexTask = state.indexTask
         if let task = state.searchTask {
             task.cancel()
             context.metrics.record("skippedResults", value: 100, unit: "%")
@@ -69,7 +71,8 @@ struct Stage2View: View {
             // Task.value: 작업이 끝날 때까지 기다려 결과를 받는다. 이미 끝났으면 바로 돌려준다.
             let index = await indexTask.value
             guard let output = try? await Stage2Search.search(key, plan: plan, index: index) else { return }
-            // 계산을 마친 검색의 비용은 적용 여부와 관계없이 남긴다. 버려진 검색을 빼면 오래 걸려 밀리기 쉬운 검색어가 평균에서 빠진다.
+            // 계산을 끝낸 검색만 여기에 닿는다. 계산 도중 취소된 검색은 위에서 nil로 돌아가 평균에서 빠지므로,
+            // 취소가 많으면 이 값은 빨리 끝난 검색의 평균이 된다 (skippedResults와 함께 읽는다).
             context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
             // 취소는 메인 액터의 submit에서만 일어나므로, 여기서 취소되지 않았다면 최신 검색어의 결과다.
             guard !Task.isCancelled else { return }
@@ -81,7 +84,7 @@ struct Stage2View: View {
         state.searchTask = nil
         state.stack.push(query: output.query, positions: output.positions)
         let applyState = PerfSignpost.signposter.beginInterval("applyResults")
-        // 행이 읽는 인덱스는 결과(@State)보다 먼저 넣어, 결과가 바뀌어 다시 그릴 때 함께 보이게 한다.
+        // 인덱스는 @State가 아니라서 넣어도 화면을 다시 그리지 않는다. 아래 결과(@State)가 바뀌어 행을 다시 그릴 때 함께 읽힌다.
         state.index = index
         positions = output.positions
         appliedQuery = output.query
@@ -121,18 +124,14 @@ struct Stage2View: View {
 
 /// 화면 갱신과 상관없는 검색 상태를 담는 상자.
 ///
-/// - class: `@State`에 바로 두면 입력과 적용마다 상태가 바뀌어 body를 다시 계산할 수 있다.
-///   참조 타입 안의 프로퍼티는 SwiftUI가 관찰하지 않으므로(`@Observable` 아님) 바꿔도 화면 갱신이 일어나지 않는다.
+/// - class: 참조 타입 안의 프로퍼티는 SwiftUI가 관찰하지 않으므로(`@Observable` 아님) 바꿔도 화면 갱신이 일어나지 않는다.
+///   진행 중인 검색, 스택, 적용한 인덱스는 화면을 다시 그릴 이유가 아니어서 여기에 모았다.
+/// - lazy: `indexTask`는 처음 읽을 때 한 번만 시작된다. `@State`의 초기값은 뷰가 다시 만들어질 때마다 평가되므로
+///   Task를 초기값으로 바로 두지 않는다.
 @MainActor
 private final class SearchState {
     var searchTask: Task<Void, Never>?
-    private(set) var indexTask: Task<Stage2Index, Never>?
+    private(set) lazy var indexTask = Task { await Stage2Index.build(from: Scenario.products) }
     var index: Stage2Index?
     var stack = Stage2ResultStack()
-
-    /// 인덱스 생성을 한 번만 시작한다. `@State`의 초기값은 뷰가 다시 만들어질 때마다 평가되므로 init에서 시작하지 않는다.
-    func buildIndex(from products: [Product]) {
-        guard indexTask == nil else { return }
-        indexTask = Task { await Stage2Index.build(from: products) }
-    }
 }

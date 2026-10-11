@@ -10,9 +10,11 @@ struct Stage1View: View {
     @State private var query = ""
     @State private var inputTime: CFTimeInterval = 0
     @State private var rows: [Stage1Search.Row] = []
-    /// 진행 중인 검색. `.task(id: query)`도 이전 작업을 자동으로 취소하지만, 화면이 나타날 때 빈 검색어로 한 번 돌고
+    /// 진행 중인 검색. nil이 아니면 아직 적용 전인 검색이 있다는 뜻이다. body가 읽지 않는 상태라 바꿔도 화면을 다시 그리지 않는다.
+    ///
+    /// `.task(id: query)`도 이전 작업을 자동으로 취소하지만, 화면이 나타날 때 빈 검색어로 한 번 돌고
     /// 밀려난 검색어를 셀 시점이 없어서 UIKit과 같은 방식으로 직접 들고 있는다.
-    @State private var searchTask = SearchTaskBox()
+    @State private var searchTask: Task<Void, Never>?
 
     // MARK: - Lifecycle
 
@@ -36,7 +38,7 @@ struct Stage1View: View {
         .task {
             if context.isBenchmark { await play() }
         }
-        .onDisappear { searchTask.task?.cancel() }
+        .onDisappear { searchTask?.cancel() }
     }
 
     // MARK: - Search
@@ -51,14 +53,15 @@ struct Stage1View: View {
     }
 
     private func submit(_ query: String, inputTime: CFTimeInterval) {
-        if let task = searchTask.task {
-            task.cancel()
+        if let searchTask {
+            searchTask.cancel()
             context.metrics.record("skippedResults", value: 100, unit: "%")
         }
         // View의 메서드는 메인 액터라 Task 본문도 메인 액터에서 돈다. 계산은 @concurrent 함수만 백그라운드로 간다.
-        searchTask.task = Task { [search] in
+        searchTask = Task {
             guard let output = try? await search.search(query) else { return }
-            // 계산을 마친 검색의 비용은 적용 여부와 관계없이 남긴다. 버려진 검색을 빼면 오래 걸려 밀리기 쉬운 검색어가 평균에서 빠진다.
+            // 계산을 끝낸 검색만 여기에 닿는다. 계산 도중 취소된 검색은 위에서 nil로 돌아가 평균에서 빠지므로,
+            // 취소가 많으면 이 값은 빨리 끝난 검색의 평균이 된다 (skippedResults와 함께 읽는다).
             context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
             // 취소는 메인 액터의 submit에서만 일어나므로, 여기서 취소되지 않았다면 최신 검색어의 결과다.
             guard !Task.isCancelled else { return }
@@ -67,7 +70,7 @@ struct Stage1View: View {
     }
 
     private func apply(_ output: Stage1Search.Output, inputTime: CFTimeInterval) {
-        searchTask.task = nil
+        searchTask = nil
         let applyState = PerfSignpost.signposter.beginInterval("applyResults")
         rows = output.rows
         PerfSignpost.signposter.endInterval("applyResults", applyState)
@@ -101,14 +104,4 @@ struct Stage1View: View {
     private func play() async {
         await TypingPlayer.play(context: context) { setQuery($0) }
     }
-}
-
-/// 진행 중인 검색 Task를 담는 상자. nil이 아니면 아직 적용 전인 검색이 있다는 뜻이다.
-///
-/// - class: `@State`에 Task를 바로 두면 입력과 적용마다 상태가 바뀌어 body를 다시 계산할 수 있다.
-///   참조 타입 안의 프로퍼티는 SwiftUI가 관찰하지 않으므로(`@Observable` 아님) 바꿔도 화면 갱신이 일어나지 않는다.
-///   `@State`는 이 상자 하나를 뷰가 다시 만들어져도 유지하는 역할만 한다.
-@MainActor
-private final class SearchTaskBox {
-    var task: Task<Void, Never>?
 }

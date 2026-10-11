@@ -85,14 +85,15 @@ final class Stage1ViewController: UIViewController {
             context.metrics.record("skippedResults", value: 100, unit: "%")
         }
         // Task { }: 메인 액터에서 만들었으므로 본문은 메인 액터에서 돈다. 무거운 계산은 await한 @concurrent 함수만 백그라운드로 간다.
-        searchTask = Task { [weak self, search] in
-            guard let output = try? await search.search(query), let self else { return }
-            // 계산을 마친 검색의 비용은 적용 여부와 관계없이 남긴다. 버려진 검색을 빼면 오래 걸려 밀리기 쉬운 검색어가 평균에서 빠진다.
-            self.context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
+        searchTask = Task {
+            guard let output = try? await search.search(query) else { return }
+            // 계산을 끝낸 검색만 여기에 닿는다. 계산 도중 취소된 검색은 위에서 nil로 돌아가 평균에서 빠지므로,
+            // 취소가 많으면 이 값은 빨리 끝난 검색의 평균이 된다 (skippedResults와 함께 읽는다).
+            context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
             // await에서 돌아온 뒤에는 메인 액터다. 취소(submit)도 메인 액터에서만 일어나므로,
             // 여기서 취소되지 않았다면 이 결과가 최신 검색어의 결과다. 늦게 끝난 옛 결과가 새 결과를 덮지 않는다.
             guard !Task.isCancelled else { return }
-            self.apply(output, inputTime: inputTime)
+            apply(output, inputTime: inputTime)
         }
     }
 
@@ -132,6 +133,7 @@ final class Stage1ViewController: UIViewController {
     // MARK: - Benchmark
 
     private func startPlayback() {
+        // 재생은 취소될 때까지 끝나지 않는 루프다. 화면을 강하게 잡으면 취소를 놓쳤을 때 화면이 해제되지 않으므로 약하게 잡는다.
         playback = Task { [weak self] in
             guard let context = self?.context else { return }
             await TypingPlayer.play(context: context) { query in

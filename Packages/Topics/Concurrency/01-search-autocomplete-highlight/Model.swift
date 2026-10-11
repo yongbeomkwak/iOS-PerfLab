@@ -2,7 +2,7 @@ import Foundation
 
 /// 검색 대상 상품.
 ///
-/// - Identifiable: SwiftUI `List`가 `id`로 행을 구분해, 결과가 바뀔 때 어떤 행이 추가되고 사라졌는지 비교한다.
+/// - Identifiable: SwiftUI `List`가 `id`로 행을 구분한다.
 /// - Sendable: S1부터 백그라운드 Task로 넘겨 검색하기 때문에 필요하다. 상수 값만 담은 struct라 컴파일러가 자동으로 인정한다.
 struct Product: Identifiable, Hashable, Sendable {
     let id: Int

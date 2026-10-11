@@ -12,7 +12,7 @@ final class Stage0ViewController: UIViewController {
     /// Task: 비동기 작업 하나. 여기서는 메인 액터에서 만들어져 메인 스레드에서 돈다 (S0는 백그라운드 작업이 없다).
     private var playback: Task<Void, Never>?
 
-    /// UISearchTextField: 돋보기 아이콘과 지우기 버튼이 있는 검색용 UITextField.
+    /// UISearchTextField: 왼쪽 아이콘과 지우기 버튼이 기본으로 붙은 검색용 UITextField.
     private let searchField = UISearchTextField()
     private let countLabel = UILabel()
     private let tableView = UITableView(frame: .zero, style: .plain)
@@ -122,6 +122,7 @@ final class Stage0ViewController: UIViewController {
     // MARK: - Benchmark
 
     private func startPlayback() {
+        // 재생은 취소될 때까지 끝나지 않는 루프다. 화면을 강하게 잡으면 취소를 놓쳤을 때 화면이 해제되지 않으므로 약하게 잡는다.
         playback = Task { [weak self] in
             guard let context = self?.context else { return }
             await TypingPlayer.play(context: context) { query in

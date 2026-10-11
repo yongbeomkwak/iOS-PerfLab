@@ -16,7 +16,7 @@ struct Stage2Index: Sendable {
     /// 인덱스를 만드는 데 걸린 시간 (ms).
     let buildTime: Double
 
-    /// @concurrent: 부른 쪽이 메인 액터여도 메인이 아닌 공용 스레드 풀에서 실행된다. 화면은 먼저 그려지고 인덱스는 뒤에서 만들어진다.
+    /// 메인이 아닌 공용 스레드 풀에서 실행된다 (`@concurrent`의 역할은 `Stage1Search.search` 참고). 화면은 먼저 그려지고 인덱스는 뒤에서 만들어진다.
     @concurrent
     static func build(from products: [Product]) async -> Stage2Index {
         let start = CACurrentMediaTime()
@@ -33,9 +33,10 @@ struct Stage2Index: Sendable {
 
     /// `name`의 `from` 위치부터 `query`가 처음 나오는 위치. 없으면 nil.
     static func firstMatch(of query: [UInt16], in name: [UInt16], from: Int = 0) -> Int? {
-        guard !query.isEmpty, name.count >= query.count else { return nil }
+        guard !query.isEmpty else { return nil }
         let first = query[0]
         var start = from
+        // 이름이 검색어보다 짧으면 상한이 음수라 한 번도 돌지 않는다.
         while start <= name.count - query.count {
             // 첫 코드 단위가 다르면 나머지는 비교하지 않는다. 대부분의 위치가 여기서 걸러진다.
             if name[start] == first, name[start..<start + query.count].elementsEqual(query) {

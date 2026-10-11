@@ -23,7 +23,7 @@ struct Stage2ResultStack {
     }
 
     private var entries: [(query: [UInt16], positions: [Int])] = []
-    /// 스택 크기 추정치 (bytes). 항목마다 배열 두 개(검색어, 결과 위치)의 헤더 + 원소 수 × stride.
+    /// 스택 크기 추정치 (bytes). 항목마다 배열 두 개(검색어, 결과 위치)의 헤더 + 버퍼 용량 × stride.
     private(set) var bytes = 0
 
     mutating func plan(for query: [UInt16]) -> Plan {
@@ -47,7 +47,8 @@ struct Stage2ResultStack {
     }
 
     private static func bytes(of entry: (query: [UInt16], positions: [Int])) -> Int {
-        2 * arrayHeaderBytes + entry.query.count * MemoryLayout<UInt16>.stride
-            + entry.positions.count * MemoryLayout<Int>.stride
+        // 결과 위치는 filter가 append로 만든 배열이라 count가 아니라 capacity가 실제 버퍼 크기다 (Stage0Search.memory와 같은 기준).
+        2 * arrayHeaderBytes + entry.query.capacity * MemoryLayout<UInt16>.stride
+            + entry.positions.capacity * MemoryLayout<Int>.stride
     }
 }

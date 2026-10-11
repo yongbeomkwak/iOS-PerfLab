@@ -4,12 +4,14 @@ import UIKit
 // 전략: 소문자 UTF-16 인덱스를 미리 만들고, 앞 검색어의 결과 안에서만 거르며(지우면 결과 스택을 되돌림),
 //   일치 위치는 보이는 셀만 구한다. 백그라운드 Task + 취소는 Stage 1과 같다.
 // 변경: Stage 1의 5만 개 lowercased() + contains를 인덱스 + 증분 검색으로, 결과 전체 위치 계산을 셀 단위 지연 계산으로 바꿨다.
+//   일치 위치는 range(of:) + String.Index 변환 대신 UTF-16 배열을 직접 비교해 구한다.
 //   검색어 소문자 변환은 입력당 한 번으로, 결과는 상품 위치(Int) 배열로 바뀌었다.
 final class Stage2ViewController: UIViewController {
     private let context: TopicContext
     private let products = Scenario.products
-    /// 인덱스 생성 작업. 화면이 열릴 때 시작하고, 검색은 이 작업의 결과(`value`)를 기다려 받는다.
-    private var indexTask: Task<Stage2Index, Never>?
+    /// 인덱스 생성 작업. 화면 객체가 만들어질 때 시작하고, 검색은 이 작업의 결과(`value`)를 기다려 받는다.
+    /// 생성은 메인 스레드 밖에서 돌아서 그동안 화면은 먼저 그려진다.
+    private let indexTask = Task { await Stage2Index.build(from: Scenario.products) }
     /// 화면에 적용한 결과를 만든 인덱스. 셀이 일치 위치를 구할 때 쓴다.
     private var index: Stage2Index?
     private var stack = Stage2ResultStack()
@@ -39,9 +41,6 @@ final class Stage2ViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         layout()
-        let products = products
-        // 인덱스 생성은 @concurrent 함수라 메인 스레드 밖에서 돈다. 그동안 화면은 먼저 그려진다.
-        indexTask = Task { await Stage2Index.build(from: products) }
         if context.isBenchmark { startPlayback() }
     }
 
@@ -91,7 +90,6 @@ final class Stage2ViewController: UIViewController {
     }
 
     private func submit(_ query: String, inputTime: CFTimeInterval) {
-        guard let indexTask else { return }
         if let searchTask {
             searchTask.cancel()
             context.metrics.record("skippedResults", value: 100, unit: "%")
@@ -100,16 +98,17 @@ final class Stage2ViewController: UIViewController {
         let key = Array(query.lowercased().utf16)
         // 스택 정리와 시작 범위 결정은 메인 액터에서 한다. 스택은 메인 액터만 바꾸므로 잠금 없이 안전하다.
         let plan = stack.plan(for: key)
-        searchTask = Task { [weak self] in
+        searchTask = Task {
             // Task.value: 작업이 끝날 때까지 기다려 결과를 받는다. 이미 끝났으면 바로 돌려준다.
             let index = await indexTask.value
-            guard let output = try? await Stage2Search.search(key, plan: plan, index: index), let self else { return }
-            // 계산을 마친 검색의 비용은 적용 여부와 관계없이 남긴다. 버려진 검색을 빼면 오래 걸려 밀리기 쉬운 검색어가 평균에서 빠진다.
-            self.context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
+            guard let output = try? await Stage2Search.search(key, plan: plan, index: index) else { return }
+            // 계산을 끝낸 검색만 여기에 닿는다. 계산 도중 취소된 검색은 위에서 nil로 돌아가 평균에서 빠지므로,
+            // 취소가 많으면 이 값은 빨리 끝난 검색의 평균이 된다 (skippedResults와 함께 읽는다).
+            context.metrics.record("filterTime", value: output.filterTime, unit: "ms")
             // await에서 돌아온 뒤에는 메인 액터다. 취소(submit)도 메인 액터에서만 일어나므로,
             // 여기서 취소되지 않았다면 이 결과가 최신 검색어의 결과다. 늦게 끝난 옛 결과가 새 결과를 덮지 않는다.
             guard !Task.isCancelled else { return }
-            self.apply(output, index: index, inputTime: inputTime)
+            apply(output, index: index, inputTime: inputTime)
         }
     }
 
@@ -154,6 +153,7 @@ final class Stage2ViewController: UIViewController {
     // MARK: - Benchmark
 
     private func startPlayback() {
+        // 재생은 취소될 때까지 끝나지 않는 루프다. 화면을 강하게 잡으면 취소를 놓쳤을 때 화면이 해제되지 않으므로 약하게 잡는다.
         playback = Task { [weak self] in
             guard let context = self?.context else { return }
             await TypingPlayer.play(context: context) { query in
