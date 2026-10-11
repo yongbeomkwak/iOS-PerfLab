@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="400" viewBox="0 0 760 400" font-family="-apple-system, 'Apple SD Gothic Neo', Helvetica, sans-serif">
+<rect width="760" height="400" fill="#ffffff"/>
+<text x="20" y="32" font-size="20" font-weight="600" fill="#1c1c1e">증분 검색과 결과 스택</text>
+<text x="20" y="56" font-size="13" fill="#6e6e73">글자를 더하면 앞 결과 안에서만 찾고, 지우면 쌓아 둔 결과를 다시 쓴다.</text>
+
+<rect x="40" y="84" width="200" height="64" rx="8" fill="#eaf2ff" stroke="#3478f6" stroke-width="1.5"/>
+<text x="140" y="110" font-size="15" font-weight="600" fill="#1c1c1e" text-anchor="middle">「보」 입력</text>
+<text x="140" y="132" font-size="13" fill="#1c1c1e" text-anchor="middle">5만 개 전체에서 찾는다</text>
+
+<rect x="280" y="84" width="200" height="64" rx="8" fill="#eaf2ff" stroke="#3478f6" stroke-width="1.5"/>
+<text x="380" y="110" font-size="15" font-weight="600" fill="#1c1c1e" text-anchor="middle">「보조」 입력</text>
+<text x="380" y="132" font-size="13" fill="#1c1c1e" text-anchor="middle">「보」의 결과 안에서만 찾는다</text>
+
+<rect x="520" y="84" width="200" height="64" rx="8" fill="#eaf2ff" stroke="#3478f6" stroke-width="1.5"/>
+<text x="620" y="110" font-size="15" font-weight="600" fill="#1c1c1e" text-anchor="middle">한 글자 지워 「보」</text>
+<text x="620" y="132" font-size="13" fill="#1c1c1e" text-anchor="middle">계산하지 않고 다시 쓴다</text>
+
+<text x="260" y="121" font-size="18" fill="#8e8e93" text-anchor="middle">→</text>
+<text x="500" y="121" font-size="18" fill="#8e8e93" text-anchor="middle">→</text>
+
+<text x="140" y="176" font-size="12" fill="#6e6e73" text-anchor="middle">경로: full</text>
+<text x="380" y="176" font-size="12" fill="#6e6e73" text-anchor="middle">경로: narrow</text>
+<text x="620" y="176" font-size="12" fill="#6e6e73" text-anchor="middle">경로: reuse</text>
+
+<text x="20" y="212" font-size="13" font-weight="600" fill="#1c1c1e">결과 스택</text>
+
+<rect x="60" y="296" width="160" height="34" fill="#fff4e0" stroke="#ff9500" stroke-width="1.5"/>
+<text x="140" y="318" font-size="13" fill="#1c1c1e" text-anchor="middle">「보」의 결과</text>
+
+<rect x="300" y="258" width="160" height="34" fill="#fff4e0" stroke="#ff9500" stroke-width="1.5"/>
+<text x="380" y="280" font-size="13" fill="#1c1c1e" text-anchor="middle">「보조」의 결과</text>
+<rect x="300" y="296" width="160" height="34" fill="#ffffff" stroke="#ff9500" stroke-width="1.5"/>
+<text x="380" y="318" font-size="13" fill="#1c1c1e" text-anchor="middle">「보」의 결과</text>
+
+<rect x="540" y="258" width="160" height="34" fill="#ffffff" stroke="#c7c7cc" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="620" y="280" font-size="13" fill="#8e8e93" text-anchor="middle">「보조」의 결과 (꺼내 버림)</text>
+<rect x="540" y="296" width="160" height="34" fill="#fff4e0" stroke="#ff9500" stroke-width="1.5"/>
+<text x="620" y="318" font-size="13" fill="#1c1c1e" text-anchor="middle">「보」의 결과</text>
+
+<line x1="40" y1="338" x2="720" y2="338" stroke="#8e8e93" stroke-width="1"/>
+<text x="20" y="368" font-size="13" fill="#1c1c1e">색이 칠해진 칸이 지금 화면에 보이는 결과다. 아래 칸의 검색어는 항상 위 칸의 검색어에 포함된다.</text>
+</svg>

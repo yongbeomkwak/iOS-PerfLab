@@ -3,6 +3,7 @@ import PackageDescription
 
 /// 주제 모듈 목록. `scripts/perflab new`가 아래 마커 위에 자동으로 추가한다.
 let topics: [TopicModule] = [
+    TopicModule(name: "Topic01SearchAutocompleteHighlight", path: "Concurrency/01-search-autocomplete-highlight")
     // @perflab:topics
 ]
 

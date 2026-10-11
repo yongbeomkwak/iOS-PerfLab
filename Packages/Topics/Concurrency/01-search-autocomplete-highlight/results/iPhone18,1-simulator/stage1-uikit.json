@@ -1,0 +1,96 @@
+{
+  "customMetrics": [
+    {
+      "name": "inputDelay",
+      "unit": "ms",
+      "value": 31.586416601203382
+    },
+    {
+      "name": "skippedResults",
+      "unit": "%",
+      "value": 54
+    },
+    {
+      "name": "filterTime",
+      "unit": "ms",
+      "value": 63.44374556569977
+    },
+    {
+      "name": "resultLatency",
+      "unit": "ms",
+      "value": 64.07116303908761
+    },
+    {
+      "name": "searchMemory",
+      "unit": "MB",
+      "value": 0.13516301694123642
+    },
+    {
+      "name": "indexBuildTime",
+      "unit": "ms",
+      "value": 0
+    }
+  ],
+  "date": "2026-10-11T13:21:01Z",
+  "environment": {
+    "buildConfiguration": "Release",
+    "deviceModel": "iPhone18,1",
+    "isSimulator": true,
+    "maximumFPS": 60,
+    "systemVersion": "26.1"
+  },
+  "framework": "uikit",
+  "metrics": {
+    "cpuAverage": 86.7332306123856,
+    "cpuPeak": 101.58079999999998,
+    "durationSeconds": 10.003912458429113,
+    "fpsAverage": 59.71042834167362,
+    "fpsMinimum": 56,
+    "hitchCount": 4,
+    "hitchTimeRatio": 6.959014817679452,
+    "memoryAverageMB": 53.33676428543894,
+    "memoryPeakMB": 55.15913391113281,
+    "threadPeak": 12
+  },
+  "repeat": 3,
+  "runs": [
+    {
+      "cpuAverage": 84.46636910791752,
+      "cpuPeak": 100.02460000000006,
+      "durationSeconds": 10.008015875006095,
+      "fpsAverage": 59.58298834849304,
+      "fpsMinimum": 56,
+      "hitchCount": 4,
+      "hitchTimeRatio": 7.9944500979871504,
+      "memoryAverageMB": 53.33676428543894,
+      "memoryPeakMB": 55.15913391113281,
+      "threadPeak": 12
+    },
+    {
+      "cpuAverage": 87.09447186132817,
+      "cpuPeak": 101.58079999999998,
+      "durationSeconds": 10.001340250018984,
+      "fpsAverage": 60.146397438959845,
+      "fpsMinimum": 60,
+      "hitchCount": 0,
+      "hitchTimeRatio": 0,
+      "memoryAverageMB": 53.312938489412005,
+      "memoryPeakMB": 55.018531799316406,
+      "threadPeak": 23
+    },
+    {
+      "cpuAverage": 86.7332306123856,
+      "cpuPeak": 101.86799999999998,
+      "durationSeconds": 10.003912458429113,
+      "fpsAverage": 59.71042834167362,
+      "fpsMinimum": 56,
+      "hitchCount": 4,
+      "hitchTimeRatio": 6.959014817679452,
+      "memoryAverageMB": 53.374593232807364,
+      "memoryPeakMB": 55.47163391113281,
+      "threadPeak": 9
+    }
+  ],
+  "stage": 1,
+  "topicID": "01-search-autocomplete-highlight"
+}

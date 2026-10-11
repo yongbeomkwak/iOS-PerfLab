@@ -1,0 +1,65 @@
+{
+  "customMetrics": [],
+  "date": "2026-10-11T13:08:53Z",
+  "environment": {
+    "buildConfiguration": "Release",
+    "deviceModel": "iPhone14,7",
+    "isSimulator": false,
+    "maximumFPS": 60,
+    "systemVersion": "26.6.1"
+  },
+  "framework": "swiftui",
+  "metrics": {
+    "cpuAverage": 0.8491877851446683,
+    "cpuPeak": 1.407188622027555,
+    "durationSeconds": 10.363577666692436,
+    "fpsAverage": 60.0509769539566,
+    "fpsMinimum": 60.00780100412373,
+    "hitchCount": 0,
+    "hitchTimeRatio": 0,
+    "memoryAverageMB": 18.574913426449424,
+    "memoryPeakMB": 18.766525268554688,
+    "threadPeak": 11
+  },
+  "repeat": 3,
+  "runs": [
+    {
+      "cpuAverage": 1.0564587631539613,
+      "cpuPeak": 1.4615216935121398,
+      "durationSeconds": 10.550820041447878,
+      "fpsAverage": 60.02065734002675,
+      "fpsMinimum": 60.00780100412373,
+      "hitchCount": 0,
+      "hitchTimeRatio": 0,
+      "memoryAverageMB": 18.625900268554688,
+      "memoryPeakMB": 18.860275268554688,
+      "threadPeak": 11
+    },
+    {
+      "cpuAverage": 0.8455228654544824,
+      "cpuPeak": 1.407188622027555,
+      "durationSeconds": 10.363577666692436,
+      "fpsAverage": 60.081695244160244,
+      "fpsMinimum": 60.012902746583016,
+      "hitchCount": 0,
+      "hitchTimeRatio": 0,
+      "memoryAverageMB": 18.22904815673828,
+      "memoryPeakMB": 18.48529815673828,
+      "threadPeak": 11
+    },
+    {
+      "cpuAverage": 0.8491877851446683,
+      "cpuPeak": 1.176972098144255,
+      "durationSeconds": 10.072396708186716,
+      "fpsAverage": 60.0509769539566,
+      "fpsMinimum": 59.97665748826048,
+      "hitchCount": 0,
+      "hitchTimeRatio": 0,
+      "memoryAverageMB": 18.574913426449424,
+      "memoryPeakMB": 18.766525268554688,
+      "threadPeak": 11
+    }
+  ],
+  "stage": 0,
+  "topicID": "_baseline"
+}
