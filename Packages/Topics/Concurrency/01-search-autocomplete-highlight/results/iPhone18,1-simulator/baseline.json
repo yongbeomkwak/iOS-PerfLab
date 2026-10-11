@@ -1,63 +1,63 @@
 {
   "customMetrics": [],
-  "date": "2026-10-08T05:27:34Z",
+  "date": "2026-10-11T13:19:07Z",
   "environment": {
     "buildConfiguration": "Release",
     "deviceModel": "iPhone18,1",
     "isSimulator": true,
     "maximumFPS": 60,
-    "systemVersion": "26.5"
+    "systemVersion": "26.1"
   },
   "framework": "swiftui",
   "metrics": {
-    "cpuAverage": 0.8415855543335965,
-    "cpuPeak": 1.122739084376165,
-    "durationSeconds": 10.580556166707538,
-    "fpsAverage": 60.14567071873111,
+    "cpuAverage": 0.9296047257197066,
+    "cpuPeak": 1.1590000000000877,
+    "durationSeconds": 10.38364312495105,
+    "fpsAverage": 60.11534567355661,
     "fpsMinimum": 60,
     "hitchCount": 0,
     "hitchTimeRatio": 0,
-    "memoryAverageMB": 41.409269634046055,
-    "memoryPeakMB": 41.517822265625,
-    "threadPeak": 9
+    "memoryAverageMB": 41.24263153076172,
+    "memoryPeakMB": 41.64341735839844,
+    "threadPeak": 22
   },
   "repeat": 3,
   "runs": [
     {
-      "cpuAverage": 0.7608076960950808,
-      "cpuPeak": 1.0468000000000366,
-      "durationSeconds": 10.599777708412148,
-      "fpsAverage": 60.18305532025593,
+      "cpuAverage": 0.6665748722794562,
+      "cpuPeak": 1.0918000000000205,
+      "durationSeconds": 10.264804124948569,
+      "fpsAverage": 60.02863377809736,
       "fpsMinimum": 60,
       "hitchCount": 0,
       "hitchTimeRatio": 0,
-      "memoryAverageMB": 41.33404250372024,
-      "memoryPeakMB": 41.455322265625,
+      "memoryAverageMB": 41.157456970214845,
+      "memoryPeakMB": 41.221519470214844,
       "threadPeak": 8
     },
     {
-      "cpuAverage": 0.8415855543335965,
-      "cpuPeak": 1.1465999999999532,
-      "durationSeconds": 10.00527449999936,
-      "fpsAverage": 60.14567071873111,
+      "cpuAverage": 0.9296047257197066,
+      "cpuPeak": 1.1590000000000877,
+      "durationSeconds": 10.38364312495105,
+      "fpsAverage": 60.11534567355661,
       "fpsMinimum": 60,
       "hitchCount": 0,
       "hitchTimeRatio": 0,
-      "memoryAverageMB": 41.409269634046055,
-      "memoryPeakMB": 41.517822265625,
-      "threadPeak": 9
+      "memoryAverageMB": 41.24263153076172,
+      "memoryPeakMB": 41.64341735839844,
+      "threadPeak": 22
     },
     {
-      "cpuAverage": 0.9308637659226752,
-      "cpuPeak": 1.122739084376165,
-      "durationSeconds": 10.580556166707538,
-      "fpsAverage": 60.12289635122778,
+      "cpuAverage": 0.9884748196038406,
+      "cpuPeak": 1.2384000000000839,
+      "durationSeconds": 10.525183541700244,
+      "fpsAverage": 60.1435414858335,
       "fpsMinimum": 60,
       "hitchCount": 0,
       "hitchTimeRatio": 0,
-      "memoryAverageMB": 41.439702715192524,
-      "memoryPeakMB": 41.892845153808594,
-      "threadPeak": 21
+      "memoryAverageMB": 41.27732304164341,
+      "memoryPeakMB": 41.830894470214844,
+      "threadPeak": 27
     }
   ],
   "stage": 0,

@@ -1,14 +1,19 @@
 {
   "customMetrics": [
     {
+      "name": "inputDelay",
+      "unit": "ms",
+      "value": 83.81434350209956
+    },
+    {
       "name": "filterTime",
       "unit": "ms",
-      "value": 65.49624547288559
+      "value": 64.66568249743432
     },
     {
       "name": "resultLatency",
       "unit": "ms",
-      "value": 65.93510891209439
+      "value": 65.10277207475156
     },
     {
       "name": "skippedResults",
@@ -18,20 +23,15 @@
     {
       "name": "searchMemory",
       "unit": "MB",
-      "value": 0.1344132376189279
+      "value": 0.2144036865234375
     },
     {
       "name": "indexBuildTime",
       "unit": "ms",
       "value": 0
-    },
-    {
-      "name": "inputDelay",
-      "unit": "ms",
-      "value": 85.86831206898435
     }
   ],
-  "date": "2026-10-11T11:40:49Z",
+  "date": "2026-10-11T13:09:08Z",
   "environment": {
     "buildConfiguration": "Release",
     "deviceModel": "iPhone14,7",
@@ -41,54 +41,54 @@
   },
   "framework": "uikit",
   "metrics": {
-    "cpuAverage": 71.22119374834882,
-    "cpuPeak": 92.45849662688659,
-    "durationSeconds": 10.065643958281726,
-    "fpsAverage": 27.34859222479381,
-    "fpsMinimum": 16.991299605052728,
-    "hitchCount": 91,
-    "hitchTimeRatio": 533.7122982227331,
-    "memoryAverageMB": 35.385814465974505,
-    "memoryPeakMB": 37.172821044921875,
-    "threadPeak": 11
+    "cpuAverage": 70.50341905261352,
+    "cpuPeak": 87.79532149869242,
+    "durationSeconds": 10.006297041662037,
+    "fpsAverage": 23.013772537774614,
+    "fpsMinimum": 10.018942062623294,
+    "hitchCount": 115,
+    "hitchTimeRatio": 630.0521960437054,
+    "memoryAverageMB": 35.97837660047743,
+    "memoryPeakMB": 38.235321044921875,
+    "threadPeak": 12
   },
   "repeat": 3,
   "runs": [
     {
-      "cpuAverage": 69.96374613647917,
-      "cpuPeak": 88.24383435227442,
-      "durationSeconds": 10.067699000239372,
-      "fpsAverage": 27.682396742272694,
-      "fpsMinimum": 19.040450723323193,
-      "hitchCount": 95,
-      "hitchTimeRatio": 505.9742007305005,
-      "memoryAverageMB": 35.06511366994757,
-      "memoryPeakMB": 37.95409393310547,
+      "cpuAverage": 69.19807514176698,
+      "cpuPeak": 86.14252988969949,
+      "durationSeconds": 10.001802625134587,
+      "fpsAverage": 23.013772537774614,
+      "fpsMinimum": 10.018942062623294,
+      "hitchCount": 118,
+      "hitchTimeRatio": 630.0521960437054,
+      "memoryAverageMB": 35.46361965603299,
+      "memoryPeakMB": 38.235321044921875,
       "threadPeak": 13
     },
     {
-      "cpuAverage": 71.22119374834882,
-      "cpuPeak": 104.38640846955225,
-      "durationSeconds": 10.065643958281726,
-      "fpsAverage": 26.76522936965287,
-      "fpsMinimum": 11.982102170008265,
-      "hitchCount": 90,
-      "hitchTimeRatio": 537.5542638913382,
-      "memoryAverageMB": 35.385814465974505,
-      "memoryPeakMB": 37.172821044921875,
+      "cpuAverage": 70.50341905261352,
+      "cpuPeak": 87.79532149869242,
+      "durationSeconds": 10.006297041662037,
+      "fpsAverage": 23.575244754893227,
+      "fpsMinimum": 10.183019260034259,
+      "hitchCount": 95,
+      "hitchTimeRatio": 587.2525582382907,
+      "memoryAverageMB": 35.97837660047743,
+      "memoryPeakMB": 38.125946044921875,
       "threadPeak": 11
     },
     {
-      "cpuAverage": 71.85065033762835,
-      "cpuPeak": 92.45849662688659,
-      "durationSeconds": 10.00420391652733,
-      "fpsAverage": 27.34859222479381,
-      "fpsMinimum": 16.991299605052728,
-      "hitchCount": 91,
-      "hitchTimeRatio": 533.7122982227331,
-      "memoryAverageMB": 35.96275160047743,
-      "memoryPeakMB": 37.141571044921875,
-      "threadPeak": 11
+      "cpuAverage": 70.64202923911057,
+      "cpuPeak": 91.24827926792457,
+      "durationSeconds": 10.006635625381023,
+      "fpsAverage": 22.250578127450872,
+      "fpsMinimum": 9.993517543218237,
+      "hitchCount": 115,
+      "hitchTimeRatio": 638.1990112747919,
+      "memoryAverageMB": 36.67455715603299,
+      "memoryPeakMB": 38.610321044921875,
+      "threadPeak": 12
     }
   ],
   "stage": 0,

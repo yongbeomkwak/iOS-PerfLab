@@ -3,27 +3,27 @@
     {
       "name": "inputDelay",
       "unit": "ms",
-      "value": 27.910337457433343
+      "value": 32.644638125784695
     },
     {
       "name": "skippedResults",
       "unit": "%",
-      "value": 53
+      "value": 54
     },
     {
       "name": "filterTime",
       "unit": "ms",
-      "value": 64.58694474505526
+      "value": 64.38996452600398
     },
     {
       "name": "resultLatency",
       "unit": "ms",
-      "value": 66.05122164089946
+      "value": 64.68755393077366
     },
     {
       "name": "searchMemory",
       "unit": "MB",
-      "value": 0.14202199083693484
+      "value": 0.144756151282269
     },
     {
       "name": "indexBuildTime",
@@ -31,7 +31,7 @@
       "value": 0
     }
   ],
-  "date": "2026-10-11T11:42:47Z",
+  "date": "2026-10-11T13:11:36Z",
   "environment": {
     "buildConfiguration": "Release",
     "deviceModel": "iPhone14,7",
@@ -41,54 +41,54 @@
   },
   "framework": "swiftui",
   "metrics": {
-    "cpuAverage": 87.3214804097945,
-    "cpuPeak": 101.54375757158836,
-    "durationSeconds": 10.067795749753714,
-    "fpsAverage": 60.078063409860235,
-    "fpsMinimum": 60.00052255582803,
+    "cpuAverage": 87.26721984509558,
+    "cpuPeak": 101.32580716449056,
+    "durationSeconds": 10.00745795853436,
+    "fpsAverage": 60.01970118993727,
+    "fpsMinimum": 60.009330462096486,
     "hitchCount": 0,
     "hitchTimeRatio": 0,
-    "memoryAverageMB": 31.852097360711348,
-    "memoryPeakMB": 35.81342315673828,
-    "threadPeak": 11
+    "memoryAverageMB": 31.79865786903783,
+    "memoryPeakMB": 36.469696044921875,
+    "threadPeak": 13
   },
   "repeat": 3,
   "runs": [
     {
-      "cpuAverage": 87.16101219953003,
-      "cpuPeak": 101.54375757158836,
-      "durationSeconds": 10.087726875208318,
-      "fpsAverage": 60.078063409860235,
-      "fpsMinimum": 59.99873502984307,
+      "cpuAverage": 86.56974078391325,
+      "cpuPeak": 101.91293586262553,
+      "durationSeconds": 10.006422250065953,
+      "fpsAverage": 60.01970118993727,
+      "fpsMinimum": 60.009330462096486,
       "hitchCount": 0,
       "hitchTimeRatio": 0,
-      "memoryAverageMB": 31.852097360711348,
-      "memoryPeakMB": 34.875946044921875,
+      "memoryAverageMB": 31.967266283537214,
+      "memoryPeakMB": 34.12599182128906,
       "threadPeak": 11
     },
     {
-      "cpuAverage": 87.3214804097945,
-      "cpuPeak": 101.82011257694914,
-      "durationSeconds": 10.067795749753714,
-      "fpsAverage": 60.08839967491391,
-      "fpsMinimum": 60.00052255582803,
+      "cpuAverage": 87.41660110384915,
+      "cpuPeak": 101.2408360113058,
+      "durationSeconds": 10.00745795853436,
+      "fpsAverage": 60.011657868171895,
+      "fpsMinimum": 59.896379283671166,
       "hitchCount": 0,
       "hitchTimeRatio": 0,
-      "memoryAverageMB": 31.81590471769634,
-      "memoryPeakMB": 35.81342315673828,
-      "threadPeak": 11
-    },
-    {
-      "cpuAverage": 87.83094939283892,
-      "cpuPeak": 101.53009449841188,
-      "durationSeconds": 10.0027671251446,
-      "fpsAverage": 60.04938439489705,
-      "fpsMinimum": 60.011252091103486,
-      "hitchCount": 0,
-      "hitchTimeRatio": 0,
-      "memoryAverageMB": 32.206561038368626,
-      "memoryPeakMB": 36.40721893310547,
+      "memoryAverageMB": 31.79865786903783,
+      "memoryPeakMB": 36.469696044921875,
       "threadPeak": 13
+    },
+    {
+      "cpuAverage": 87.26721984509558,
+      "cpuPeak": 101.32580716449056,
+      "durationSeconds": 10.009147541597486,
+      "fpsAverage": 60.11830961053852,
+      "fpsMinimum": 60.028513536069624,
+      "hitchCount": 0,
+      "hitchTimeRatio": 0,
+      "memoryAverageMB": 31.553614967747738,
+      "memoryPeakMB": 36.51659393310547,
+      "threadPeak": 14
     }
   ],
   "stage": 1,
