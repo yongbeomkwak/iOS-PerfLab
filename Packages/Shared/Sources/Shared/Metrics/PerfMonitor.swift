@@ -90,11 +90,26 @@ public final class PerfMonitor {
 
     /// 다음 프레임이 화면에 나갈 예정 시각(`CACurrentMediaTime` 기준)을 한 번 알려 준다.
     ///
-    /// 메인 스레드 작업 직후에 등록하면, 그 작업과 화면 반영(CA 커밋)이 끝난 뒤의 첫 콜백에서 불린다.
+    /// 메인 스레드 작업 직후에 등록하면, 그 작업이 끝난 뒤의 첫 콜백에서 불린다. 콜백이 늦게 와 시각이 이미 지났으면
+    /// 그 뒤의 첫 프레임 시각을 준다 (`nextPresentation`).
     /// "입력 → 화면 반영" 지연을 잴 때 쓴다. 렌더 서버(GPU) 단계가 밀린 경우는 포함되지 않는다.
     public func afterNextFrame(_ body: @escaping @MainActor (CFTimeInterval) -> Void) {
         guard displayLink != nil else { return }
         frameWaiters.append(body)
+    }
+
+    /// 지금 처리한 변경이 화면에 나갈 수 있는 가장 이른 프레임 시각.
+    ///
+    /// 메인 스레드가 막혀 콜백이 늦게 오면 display link는 지나간 vsync의 시각을 넘긴다. 그때의 `targetTimestamp`는 이미 과거다
+    /// (시뮬레이터에서 60ms씩 막으면 40회 중 19회, 최대 57ms 과거였다). 지나간 프레임에는 이번 변경이 실릴 수 없으므로,
+    /// `now` 이후의 첫 프레임 경계로 올린다. 제때 온 콜백은 `target`을 그대로 쓴다.
+    static func nextPresentation(
+        target: CFTimeInterval,
+        frameDuration: CFTimeInterval,
+        now: CFTimeInterval
+    ) -> CFTimeInterval {
+        guard target < now, frameDuration > 0 else { return target }
+        return target + ((now - target) / frameDuration).rounded(.up) * frameDuration
     }
 
     /// Stage나 프레임워크를 바꿀 때 누적 값을 초기화한다.
@@ -141,7 +156,12 @@ public final class PerfMonitor {
             // 그 부탁은 비워 둔 원본에 쌓여 다음 프레임에 불린다. 배열은 값 타입이라 이 대입이 스냅샷이 된다.
             let waiters = frameWaiters
             frameWaiters = []
-            for waiter in waiters { waiter(link.targetTimestamp) }
+            let presentation = Self.nextPresentation(
+                target: link.targetTimestamp,
+                frameDuration: link.targetTimestamp - link.timestamp,
+                now: CACurrentMediaTime()
+            )
+            for waiter in waiters { waiter(presentation) }
         }
 
         let elapsed = link.timestamp - windowStart
