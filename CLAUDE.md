@@ -16,7 +16,9 @@
 5. **First-party only.** 서드파티 라이브러리를 추가하지 않는다. UI는 시스템 컴포넌트를 쓴다.
 6. **코드를 바꾸면 `scripts/perflab format`과 `scripts/perflab lint`를 통과시킨다.**
 7. **최적화는 저수준 API만이 아니다.** 자료구조, 값/참조 타입(`class` ↔ `struct`), 메모리, 동시성, 구조 개선 등 CS 지식 전반을 쓴다 (`docs/GUIDE.md` 3절).
-8. **작업마다 브랜치를 딴다.** 주제는 `topic/<NN>-<slug>`, 그 밖은 `<type>/<kebab-case>`. `main`에 직접 커밋하지 않고, 작업이 끝나면 사용자 확인 후 `--no-ff`로 머지한다 (`docs/COMMITS.md` 4절).
+8. **확인하지 않은 것을 사실처럼 쓰지 않는다.** 코드는 `code-verifier`, 글은 `summary-reviewer` 에이전트가 검증하고 `docs/VERIFICATION.md`에 남긴다.
+   주제 코드를 고치면 다시 검증받는다. 지문만 고쳐 적거나 판정을 바꿔 적지 않는다 (`docs/GUIDE.md` 6절).
+9. **작업마다 브랜치를 딴다.** 주제는 `topic/<NN>-<slug>`, 그 밖은 `<type>/<kebab-case>`. `main`에 직접 커밋하지 않고, 작업이 끝나면 사용자 확인 후 `--no-ff`로 머지한다 (`docs/COMMITS.md` 4절).
 
 ## 파이프라인
 
@@ -28,9 +30,9 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 |---|---|
 | proposed | `topic.json` 작성, Package.swift / TopicCatalog 등록 |
 | planned | `docs/PLAN.md`, `Scenario.swift`에 TODO 없음, Stage마다 대가 지표 정의, LEARNING `[Plan]` |
-| stageN | Stage N의 UIKit/SwiftUI 파일에 `PERFLAB: NOT_IMPLEMENTED` 없음, `// 전략:`(+ 첫 Stage 이후 `// 변경:`) 머리말, 주제 폴더 lint 통과, LEARNING `[Stage N]` |
+| stageN | Stage N의 UIKit/SwiftUI 파일에 `PERFLAB: NOT_IMPLEMENTED` 없음, `// 전략:`(+ 첫 Stage 이후 `// 변경:`) 머리말, 주제 폴더 lint 통과, LEARNING `[Stage N]`, VERIFICATION `[Stage N]`(조치 안 한 ⚠️/❌ 없음, 마지막 지문 = 지금 코드) |
 | measured | 한 기기에서 모든 Stage×Framework + baseline 결과 JSON, 모든 Stage에 대가 지표 기록, RESULTS.md 완성, LEARNING `[Measure]` |
-| summarized | `docs/SUMMARY.md`에 TODO 없음 |
+| summarized | `docs/SUMMARY.md`에 TODO 없음, VERIFICATION `[Summary]`(조치 안 한 ⚠️/❌ 없음), `docs/assets/chart-*.svg`가 결과 JSON과 같음, 글이 가리키는 이미지가 있음 |
 | archived | README Topics 표에 등록 |
 
 ## 구조
@@ -52,7 +54,8 @@ Packages/
       UIKit/Stage{0,1,2}ViewController.swift
       SwiftUI/Stage{0,1,2}View.swift
       Tests/             # 시나리오 결정성, Stage 간 결과 정합성
-      docs/              # PLAN, LEARNING, RESULTS, SUMMARY
+      docs/              # PLAN, LEARNING, RESULTS, VERIFICATION, SUMMARY
+        assets/          # SUMMARY의 그림: chart-*(자동 생성), diagram-*, screenshot-* (SVG 원본 + PNG)
       results/<device>/stage<N>-<framework>.json
 Templates/Topic/         # 새 주제 템플릿
 Config/Info.plist        # 생성 Info.plist에 합쳐지는 키 (120Hz display link)
@@ -73,6 +76,9 @@ scripts/perflab advance <topic>        # 다음 상태 조건 검사 후 전환
 scripts/perflab test <topic>           # 주제 단위 테스트 (시뮬레이터)
 scripts/perflab measure <topic> [--device "<실기기 이름>"] [--repeat 3]   # Release 자동 측정 (baseline 포함, 중앙값)
 scripts/perflab table <topic>          # RESULTS.md 결과표 생성
+scripts/perflab fingerprint <topic>    # 주제 코드의 지문 (검증 뒤 변경 감지, VERIFICATION.md에 기록)
+scripts/perflab chart <topic> --metric <이름> [--device <results 폴더>]   # 결과 JSON으로 차트(SVG+PNG) 생성
+scripts/perflab png <topic>            # docs/assets/의 SVG를 PNG로 변환 (Tistory 업로드용)
 scripts/perflab readme                 # README Topics 표 갱신
 scripts/perflab devices                # 측정 가능한 기기 목록
 scripts/perflab build                  # 앱 빌드 (SDK가 지원하는 iPhone 17 Pro 시뮬레이터 자동 선택)

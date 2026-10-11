@@ -36,8 +36,17 @@ paths:
 - 최적화 대상 로직은 화면 파일과 나눠 `<역할>/StageN/` 폴더에 두고, 주요 타입 하나에 파일 하나를 쓴다 (`docs/CONVENTIONS.md` 6절 "폴더").
 - `Shared` 패키지 수정이 필요하면 모든 주제에 쓸 수 있는 일반적인 기능인지 먼저 확인하고, 사용자에게 알린다.
 
+## 검증
+
+- Stage 구현을 마치면 `code-verifier`의 검증을 받고 `docs/VERIFICATION.md`에 기록한다 (`.claude/skills/perflab/phases/implement.md` 8번).
+- **확인하지 않은 것을 사실처럼 쓰지 않는다.** 주석이 동작, 비용, 메모리, 스레드를 단정하려면 테스트, 측정, 실험, 공식 문서 중 하나로 확인돼 있어야 한다.
+  확인하지 못했으면 단정을 빼거나 "추정"이라고 쓴다.
+- 모든 선언과 분기는 "없애면 무엇이 깨지는가"에 답할 수 있어야 한다. 답할 수 없는 코드는 넣지 않는다.
+- 검증 뒤에 주제의 Swift 코드(Tests 제외)를 바꾸면 다시 검증받는다. 지문만 고쳐 적지 않는다.
+
 ## 금지
 
 - `topic.json`의 `status` 직접 수정 (`scripts/perflab advance`만 사용)
 - `Package.swift`, `Catalog/TopicCatalog.swift` 수동 등록 (`scripts/perflab new`만 사용)
 - 측정하지 않은 수치를 문서에 쓰는 것
+- 검증받지 않은 코드의 지문을 VERIFICATION.md에 적는 것, 판정(⚠️/❌)을 ✅로 바꿔 적는 것

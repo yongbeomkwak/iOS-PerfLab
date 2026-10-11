@@ -33,9 +33,9 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 |---|---|---|
 | **proposed** | 실제 앱에서 있을 법한 성능 문제를 주제로 선정 | `topic.json` |
 | **planned** | 시나리오(seed 고정 데이터, 부하), 측정 지표, Stage별 전략 설계 | `docs/PLAN.md`, `Scenario.swift` |
-| **stage0~2** | 같은 요구사항을 단계별로 UIKit / SwiftUI 구현 | `UIKit/`, `SwiftUI/`, 정합성 테스트 |
+| **stage0~2** | 같은 요구사항을 단계별로 UIKit / SwiftUI 구현, 구현과 분리된 에이전트의 코드 검증 | `UIKit/`, `SwiftUI/`, 정합성 테스트, `docs/VERIFICATION.md` |
 | **measured** | Release 빌드로 모든 Stage×Framework 자동 측정 | `results/*.json`, `docs/RESULTS.md` |
-| **summarized** | 상황, 해결 방법, CS 지식, 회고를 블로그용 글로 정리 | `docs/SUMMARY.md` |
+| **summarized** | 상황, 해결 방법, CS 지식, 회고를 블로그용 글과 그림으로 정리 | `docs/SUMMARY.md`, `docs/assets/` |
 | **archived** | 아래 [Topics](#topics) 표에 등록 | README |
 
 ### 단계별 구현
@@ -75,6 +75,15 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 - 설명을 듣기 전에 먼저 **예측**한다. (병목이 어디일지, 왜 빨라질지, 수치가 어떻게 변할지)
 - 구현 뒤에는 핵심 변경을 짚고 **이해를 확인**하며, 궁금한 점을 문답으로 푼다.
 - 예측과 답변은 틀려도 그대로 `docs/LEARNING.md`에 남기고, 이를 바탕으로 "예측과 실제"를 회고한다.
+
+### 검증
+
+구현도 설명도 AI Agent가 하므로, 틀린 설명이 그럴듯하게 들릴 수 있다. 그래서 **구현과 분리된 에이전트**가 따로 검증한다.
+
+- **코드**: 주석과 코드가 하는 주장(동작, 비용, API 사용, 개선 이유)을 하나씩 꺼내 `검증됨 / 추정 / 틀림`으로 판정한다. 근거는 테스트, 측정, 실험, 공식 문서만 인정한다.
+- **글**: 블로그 글의 모든 수치를 측정 결과 JSON과, 다이어그램과 코드 인용을 실제 코드와 대조한다.
+- **차트**: 측정 결과 JSON에서 스크립트가 직접 그린다. 숫자를 손으로 옮겨 적지 않는다.
+- 판정과 조치는 `docs/VERIFICATION.md`에 남고, 해결하지 않은 항목이 있거나 검증 뒤에 코드가 바뀌면 다음 단계로 넘어갈 수 없다. 자세한 내용은 [진행 가이드 6절](docs/GUIDE.md#6-검증과-정리)에 있다.
 
 <br>
 
@@ -121,12 +130,12 @@ Packages/
         ├── UIKit/  Stage0~2
         ├── SwiftUI/ Stage0~2
         ├── Tests/
-        ├── docs/         # PLAN · LEARNING · RESULTS · SUMMARY
+        ├── docs/         # PLAN · LEARNING · RESULTS · VERIFICATION · SUMMARY (+ assets/ 그림)
         └── results/      # 측정 결과 JSON
 Templates/Topic/          # 새 주제 템플릿
 docs/                     # 진행 가이드, 코드 컨벤션, 커밋 컨벤션
 scripts/perflab           # 파이프라인 CLI (상태 전환, 측정, format/lint)
-.claude/                  # Claude Code 규칙, /perflab skill, 리뷰 에이전트
+.claude/                  # Claude Code 규칙, /perflab skill, 리뷰와 검증 에이전트
 ```
 
 <br>
@@ -144,6 +153,7 @@ scripts/perflab status
 scripts/perflab validate <topic>
 scripts/perflab measure <topic> --device "<실기기 이름>"
 scripts/perflab table <topic>
+scripts/perflab chart <topic> --metric <지표>
 scripts/perflab build | format | lint
 ```
 

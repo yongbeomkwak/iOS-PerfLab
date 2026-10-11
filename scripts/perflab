@@ -11,6 +11,9 @@ Claude(skill)와 사람이 같은 명령을 사용하므로 파이프라인이 �
     scripts/perflab test TOPIC
     scripts/perflab measure TOPIC [--device NAME] [--repeat N] [--duration SEC]
     scripts/perflab table TOPIC
+    scripts/perflab fingerprint TOPIC
+    scripts/perflab chart TOPIC --metric NAME [--device DIR]
+    scripts/perflab png TOPIC
     scripts/perflab readme
     scripts/perflab devices
     scripts/perflab build [--device NAME]
@@ -19,7 +22,9 @@ Claude(skill)와 사람이 같은 명령을 사용하므로 파이프라인이 �
 """
 
 import argparse
+import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -69,6 +74,15 @@ RESULTS_END = "<!-- perflab:results:end -->"
 COMMON_METRICS = {"FPS", "Hitch", "CPU", "Memory", "Threads"}
 COST_COLUMN = "대가"
 COST_METRIC_COLUMN = "대가 지표"
+# docs/VERIFICATION.md: code-verifier, summary-reviewer의 판정 기록. 미해결 항목이 있으면 advance가 실패한다.
+VERDICT_COLUMN = "판정"
+ACTION_COLUMN = "조치"
+UNRESOLVED_VERDICTS = ("추정", "틀림")
+FINGERPRINT_PATTERN = r"지문:\s*`([0-9a-f]{12})`"
+ASSETS_DIR = "assets"
+CHART_PREFIX = "chart-"
+# PNG는 SVG의 2배 크기로 만든다. 블로그의 고해상도 화면에서 글자가 흐려지지 않게 하기 위해서다.
+PNG_SCALE = 2
 README_START = "<!-- perflab:topics:start -->"
 README_END = "<!-- perflab:topics:end -->"
 
@@ -305,6 +319,72 @@ def check_learning(topic, tag, errors):
         errors.append("LEARNING.md에 `### [%s]` 체크포인트 기록이 없음" % tag)
 
 
+def fingerprint(topic):
+    """주제의 Swift 소스(Tests 제외) 전체의 지문. 검증 뒤에 코드가 바뀌었는지 알아내는 데 쓴다."""
+    digest = hashlib.sha256()
+    for path in sorted(topic.path.rglob("*.swift")):
+        relative = path.relative_to(topic.path)
+        if relative.parts[0] == "Tests":
+            continue
+        digest.update(str(relative).encode())
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
+def unresolved_verdicts(text):
+    """판정이 추정/틀림인데 조치가 비어 있는 행의 첫 칸(번호) 목록."""
+    unresolved = []
+    for header, rows in markdown_tables(text):
+        if VERDICT_COLUMN not in header or ACTION_COLUMN not in header:
+            continue
+        verdict, action = header.index(VERDICT_COLUMN), header.index(ACTION_COLUMN)
+        for row in rows:
+            if any(v in row[verdict] for v in UNRESOLVED_VERDICTS) and row[action] in ("", "-"):
+                unresolved.append(row[0])
+    return unresolved
+
+
+def check_verification(topic, tags, errors, code=True):
+    """VERIFICATION.md에 `tags`의 기록이 있고, 미해결 항목이 없고, 검증한 코드가 지금 코드와 같은지 본다."""
+    path = topic.doc("VERIFICATION.md")
+    if not path.exists():
+        errors.append("VERIFICATION.md 없음 (code-verifier 검증 기록)")
+        return
+    text = re.sub(r"<!--.*?-->", "", path.read_text(), flags=re.DOTALL)
+    for tag in tags:
+        if not re.search(r"^### \[%s\]" % re.escape(tag), text, re.MULTILINE):
+            errors.append("VERIFICATION.md에 `### [%s]` 검증 기록이 없음" % tag)
+    unresolved = unresolved_verdicts(text)
+    if unresolved:
+        errors.append("VERIFICATION.md에 조치하지 않은 추정/틀림 항목 %d건 (%s)" % (len(unresolved), ", ".join(unresolved)))
+    if code:
+        recorded = re.findall(FINGERPRINT_PATTERN, text)
+        current = fingerprint(topic)
+        if not recorded:
+            errors.append("VERIFICATION.md에 검증한 코드의 지문이 없음 (`scripts/perflab fingerprint %s`)" % topic.id)
+        elif recorded[-1] != current:
+            errors.append("검증 뒤에 코드가 바뀜 (검증 %s, 현재 %s). code-verifier로 다시 검증한다" % (recorded[-1], current))
+
+
+def check_summary_assets(topic, errors):
+    """SUMMARY.md가 가리키는 이미지가 있고, 차트가 지금의 결과 JSON과 같은지 본다."""
+    docs = topic.path / "docs"
+    summary = topic.doc("SUMMARY.md").read_text() if topic.doc("SUMMARY.md").exists() else ""
+    for target in re.findall(r"!\[[^\]]*\]\(([^)\s]+)", summary):
+        if not re.match(r"https?://", target) and not (docs / target).exists():
+            errors.append("SUMMARY.md가 가리키는 이미지가 없음: %s" % target)
+    for chart in sorted((docs / ASSETS_DIR).glob(CHART_PREFIX + "*.svg")):
+        device, _, metric = chart.stem[len(CHART_PREFIX):].rpartition("-")
+        try:
+            expected = chart_svg(topic, device, metric)
+        except ChartError as error:
+            errors.append("%s를 다시 만들 수 없음: %s" % (chart.name, error))
+            continue
+        if chart.read_text() != expected:
+            errors.append("%s가 결과 JSON과 다름 (`scripts/perflab chart %s --metric %s --device %s`)"
+                          % (chart.name, topic.id, metric, device))
+
+
 def check_stage_header(topic, stage, path, errors):
     """Stage 파일 상단의 전략 주석 (docs/CONVENTIONS.md "Stage 파일 머리말")."""
     lines = path.read_text().splitlines()
@@ -378,6 +458,10 @@ def validate(topic, status):
                 check_stage_header(topic, stage, path, errors)
         check_learning(topic, "Stage %d" % stage, errors)
 
+    verified = ["Stage %d" % s for s in topic.stages if "stage%d" % s in reached]
+    if verified:
+        check_verification(topic, verified, errors)
+
     if any("stage%d" % s in reached for s in topic.stages):
         lint_errors = swift_format_lint([topic.path])
         if lint_errors:
@@ -398,6 +482,9 @@ def validate(topic, status):
 
     if "summarized" in reached:
         check_docs_filled(topic, "SUMMARY.md", errors)
+        if topic.doc("VERIFICATION.md").exists():
+            check_verification(topic, ["Summary"], errors, code=False)
+        check_summary_assets(topic, errors)
 
     if "archived" in reached:
         if topic.id not in README.read_text():
@@ -721,6 +808,183 @@ def results_markdown(topic):
     return "\n\n".join(sections)
 
 
+# ---------------------------------------------------------------------------
+# chart / png / fingerprint
+
+
+class ChartError(Exception):
+    pass
+
+
+CHART_COLORS = {"uikit": "#3478f6", "swiftui": "#ff9500"}
+CHART_FONT = "-apple-system, 'Apple SD Gothic Neo', Helvetica, sans-serif"
+
+
+def chart_values(topic, device, metric):
+    """results/<device>/에서 `metric`의 값을 읽는다. 숫자는 여기서만 나온다 (직접 입력하는 경로가 없다)."""
+    folder = topic.path / "results" / device
+    if not folder.is_dir():
+        raise ChartError("results/%s 없음" % device)
+    common = {key: (title, fmt) for title, key, fmt in METRIC_ROWS}
+    values, title, fmt, sample = {}, None, "%.2f", None
+    for s in topic.stages:
+        for f in topic.frameworks:
+            path = folder / ("stage%d-%s.json" % (s, f))
+            if not path.exists():
+                raise ChartError("%s 없음" % path.name)
+            sample = result = json.loads(path.read_text())
+            if metric in common:
+                title, fmt = common[metric]
+                values[(s, f)] = result["metrics"][metric]
+            else:
+                found = next((m for m in result["customMetrics"] if m["name"] == metric), None)
+                if found is None:
+                    raise ChartError("%s에 지표 %s 없음" % (path.name, metric))
+                title = "%s (%s)" % (metric, found["unit"])
+                values[(s, f)] = found["value"]
+    baseline = None
+    if metric in common and (folder / ("%s.json" % BASELINE_RESULT)).exists():
+        baseline = json.loads((folder / ("%s.json" % BASELINE_RESULT)).read_text())["metrics"][metric]
+    return values, baseline, title, fmt, sample
+
+
+def nice_ceiling(value):
+    """축 최대값으로 쓸, `value` 이상의 가장 작은 보기 좋은 수 (1, 1.2, 1.6, 2, 3, 4, 5, 6, 8, 10 × 10^n). 눈금 4칸으로 나누어떨어진다."""
+    if value <= 0:
+        return 1.0
+    exponent = 10.0 ** math.floor(math.log10(value))
+    return next(step * exponent for step in (1, 1.2, 1.6, 2, 3, 4, 5, 6, 8, 10) if step * exponent >= value)
+
+
+def chart_svg(topic, device, metric):
+    """Stage × Framework 막대 차트 한 장. 차트 하나에 지표 하나, 기기 하나만 그리고 축은 0에서 시작한다."""
+    values, baseline, title, fmt, sample = chart_values(topic, device, metric)
+    environment = sample["environment"]
+
+    def label(value):
+        return "%.1f" % value if fmt == "%d" and value != int(value) else fmt % value
+
+    width, height = 720, 420
+    left, right, top, bottom = 64, 24, 84, 56
+    plot_width, plot_height = width - left - right, height - top - bottom
+    maximum = nice_ceiling(max(list(values.values()) + [baseline or 0]) * 1.08)
+    frameworks, stages = topic.frameworks, topic.stages
+    group_width = plot_width / len(stages)
+    bar_width = min(72, group_width * 0.7 / len(frameworks))
+
+    def y(value):
+        return top + plot_height * (1 - value / maximum)
+
+    subtitle = "%s · iOS %s · %s · %.0f초 × %d회 중앙값%s" % (
+        environment["deviceModel"], environment["systemVersion"], environment["buildConfiguration"],
+        sample["metrics"]["durationSeconds"], sample.get("repeat", 1),
+        " · 시뮬레이터(참고용)" if environment["isSimulator"] else "")
+    out = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" font-family="%s">'
+        % (width, height, width, height, CHART_FONT),
+        '<rect width="%d" height="%d" fill="#ffffff"/>' % (width, height),
+        '<text x="%d" y="34" font-size="20" font-weight="600" fill="#1c1c1e">%s</text>' % (left, title),
+        '<text x="%d" y="58" font-size="13" fill="#6e6e73">%s</text>' % (left, subtitle),
+    ]
+    for tick in range(5):
+        value = maximum * tick / 4
+        out.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="%s" stroke-width="1"/>'
+                   % (left, y(value), width - right, y(value), "#8e8e93" if tick == 0 else "#e5e5ea"))
+        out.append('<text x="%d" y="%.1f" font-size="12" fill="#6e6e73" text-anchor="end">%g</text>'
+                   % (left - 8, y(value) + 4, value))
+    for index, s in enumerate(stages):
+        center = left + group_width * (index + 0.5)
+        start = center - bar_width * len(frameworks) / 2
+        for offset, f in enumerate(frameworks):
+            value = values[(s, f)]
+            x = start + bar_width * offset
+            out.append('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s"/>'
+                       % (x + 3, y(value), bar_width - 6, top + plot_height - y(value), CHART_COLORS[f]))
+            out.append('<text x="%.1f" y="%.1f" font-size="13" font-weight="600" fill="#1c1c1e" text-anchor="middle">%s</text>'
+                       % (x + bar_width / 2, y(value) - 6, label(value)))
+        out.append('<text x="%.1f" y="%d" font-size="14" fill="#1c1c1e" text-anchor="middle">S%d %s</text>'
+                   % (center, height - bottom + 24, s, STAGE_TITLES[s]))
+    if baseline is not None:
+        out.append('<line x1="%d" y1="%.1f" x2="%d" y2="%.1f" stroke="#34c759" stroke-width="1.5" stroke-dasharray="6 4"/>'
+                   % (left, y(baseline), width - right, y(baseline)))
+    legend_x = width - right
+    entries = [(CHART_COLORS[f], FRAMEWORK_TITLES[f]) for f in frameworks]
+    if baseline is not None:
+        entries.append(("#34c759", "Baseline %s (빈 화면)" % label(baseline)))
+    for color, name in reversed(entries):
+        text_width = sum(13 if ord(c) > 0x2E80 else 7.5 for c in name)
+        legend_x -= text_width
+        out.append('<text x="%.1f" y="34" font-size="13" fill="#1c1c1e">%s</text>' % (legend_x, name))
+        legend_x -= 18
+        out.append('<rect x="%.1f" y="24" width="12" height="12" fill="%s"/>' % (legend_x, color))
+        legend_x -= 16
+    out.append("</svg>")
+    return "\n".join(out) + "\n"
+
+
+def default_chart_device(topic):
+    """실기기 결과가 있으면 실기기를 쓴다. 시뮬레이터는 참고용이라 실기기가 없을 때만 쓴다."""
+    devices = [d for d, files in result_sets(topic).items() if expected_results(topic) <= files]
+    if not devices:
+        fail("모든 조합의 결과가 있는 기기가 없습니다. 먼저 `scripts/perflab measure %s`" % topic.id)
+    real = [d for d in devices if not d.endswith("-simulator")]
+    return (real or devices)[0]
+
+
+def write_png(svg_path):
+    """SVG를 PNG_SCALE배 크기의 PNG로 바꾼다 (Tistory 같은 블로그는 Mermaid나 SVG를 그리지 못한다).
+
+    sips는 macOS 기본 이미지 변환 도구다. SVG에 적힌 width/height대로 그리므로, 크기만 키운 사본을 만들어 넘긴다.
+    """
+    text = svg_path.read_text()
+    root = re.search(r"<svg[^>]*>", text)
+    size = root and re.search(r'\swidth="([\d.]+)"', root.group(0)), root and re.search(r'\sheight="([\d.]+)"', root.group(0))
+    if not root or not all(size):
+        fail("%s: <svg>에 width, height(px)와 viewBox가 있어야 PNG로 바꿀 수 있습니다." % svg_path.name)
+    if "viewBox" not in root.group(0):
+        fail("%s: <svg>에 viewBox가 없습니다. 크기를 키우면 그림이 잘립니다." % svg_path.name)
+    scaled = root.group(0)
+    for name, match in zip(("width", "height"), size):
+        scaled = scaled.replace(match.group(0), ' %s="%g"' % (name, float(match.group(1)) * PNG_SCALE), 1)
+    with tempfile.TemporaryDirectory(prefix="perflab-") as work:
+        source = Path(work) / svg_path.name
+        source.write_text(text.replace(root.group(0), scaled, 1))
+        target = svg_path.with_suffix(".png")
+        result = subprocess.run(["sips", "-s", "format", "png", str(source), "--out", str(target)],
+                                capture_output=True, text=True)
+        if result.returncode != 0 or not target.exists():
+            fail("PNG 변환 실패: %s\n%s" % (svg_path.name, result.stderr.strip()))
+    return target
+
+
+def cmd_chart(args):
+    topic = find_topic(args.topic)
+    device = args.device or default_chart_device(topic)
+    assets = topic.path / "docs" / ASSETS_DIR
+    assets.mkdir(parents=True, exist_ok=True)
+    for metric in args.metric:
+        try:
+            svg = chart_svg(topic, device, metric)
+        except ChartError as error:
+            fail(str(error))
+        path = assets / ("%s%s-%s.svg" % (CHART_PREFIX, device, metric))
+        path.write_text(svg)
+        print("✔ %s, %s" % (path.relative_to(ROOT), write_png(path).name))
+
+
+def cmd_png(args):
+    topic = find_topic(args.topic)
+    files = sorted((topic.path / "docs" / ASSETS_DIR).glob("*.svg"))
+    if not files:
+        fail("docs/%s/에 SVG가 없습니다." % ASSETS_DIR)
+    for path in files:
+        print("✔ %s" % write_png(path).relative_to(ROOT))
+
+
+def cmd_fingerprint(args):
+    print(fingerprint(find_topic(args.topic)))
+
+
 def replace_between(text, start, end, body):
     pattern = re.compile(re.escape(start) + r".*?" + re.escape(end), re.DOTALL)
     if not pattern.search(text):
@@ -868,6 +1132,21 @@ def main():
     p = sub.add_parser("table", help="results/로 RESULTS.md 결과표 생성")
     p.add_argument("topic")
     p.set_defaults(func=cmd_table)
+
+    p = sub.add_parser("fingerprint", help="주제 Swift 소스의 지문 (VERIFICATION.md에 기록, 검증 뒤 변경 감지)")
+    p.add_argument("topic")
+    p.set_defaults(func=cmd_fingerprint)
+
+    p = sub.add_parser("chart", help="results/로 docs/assets/에 지표 차트(SVG+PNG) 생성")
+    p.add_argument("topic")
+    p.add_argument("--metric", action="append", required=True,
+                   help="지표 이름. 공통: fpsAverage, hitchTimeRatio, cpuAverage 등 / 커스텀: PLAN.md의 이름. 여러 번 쓸 수 있다")
+    p.add_argument("--device", help="results/ 아래 폴더 이름. 기본: 실기기 결과 (없으면 시뮬레이터)")
+    p.set_defaults(func=cmd_chart)
+
+    p = sub.add_parser("png", help="docs/assets/의 모든 SVG를 PNG로 변환 (블로그 업로드용)")
+    p.add_argument("topic")
+    p.set_defaults(func=cmd_png)
 
     p = sub.add_parser("readme", help="README Topics 표 갱신")
     p.set_defaults(func=cmd_readme)
