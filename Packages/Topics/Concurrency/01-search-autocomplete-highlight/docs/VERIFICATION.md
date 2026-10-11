@@ -209,3 +209,103 @@ Stage 0~2는 검증 과정이 생기기 전에 구현됐다. 아래 세 섹션�
 - **Q-1**: 주석의 이유가 "struct로는 안 된다"에서 "관찰되지 않는 곳에 두려고"로 바뀌었다. 앞의 것은 컴파일러가 반박했고, 뒤의 것은 실험(상자 변경 0회, `@State` 변경 1회)이 뒷받침한다. 같은 코드라도 주석이 대는 이유가 확인 가능한 것이어야 한다.
 
 - 지문: `b0bdde8606c4`
+
+### [Summary] 수치와 그림은 원본과 맞지만, "S1은 일의 양이 그대로"와 예측 표 두 칸이 확인된 범위를 넘고, S1 스니펫과 수치 하나가 원본과 다르다 (2026-10-11)
+
+- 대상: `docs/SUMMARY.md`, `docs/assets/`(chart 2, diagram 2, screenshot 1의 SVG와 PNG), `docs/RESULTS.md`, `docs/PLAN.md`, `docs/LEARNING.md`, `docs/VERIFICATION.md`, `results/iPhone14,7/*.json`, `results/iPhone18,1-simulator/*.json`, `Scenario.swift`, `Model.swift`, `Search/Stage{0,1,2}/*.swift`, `UIKit/Stage{1,2}ViewController.swift`, `SwiftUI/Stage{1,2}View.swift`, `scripts/perflab`(chart 생성 코드)
+- 판정: ✅ 19건 · ⚠️ 8건 · ❌ 2건 (대조한 수치 55개, 그림 5개)
+- 확인 방법: 수치는 `results/iPhone14,7/*.json`의 중앙값을 글의 자릿수로 반올림해 대조했다. 차트는 `scripts/perflab`의 `chart_svg`를 불러 다시 만든 SVG와 바이트 단위로 비교했다(파일은 쓰지 않음). 화면 캡처는 `Scenario.swift`, `Model.swift`, Shared의 `SeededRandomNumberGenerator`를 그대로 컴파일해 "SPEAK" 결과를 다시 구해 대조했다(`scratchpad/verify/summary/`). 참고 자료의 외부 링크 3개는 열어 보지 않았다.
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| S-1 | SUMMARY.md 머리말 "측정 환경" | iPhone 14 실기기, iOS 26.6.1, 최대 60fps, Release, 10초 × 3회 중앙값 | ✅ 검증됨 | `results/iPhone14,7/*.json`의 `environment`(iPhone14,7, 26.6.1, Release, maximumFPS 60, isSimulator false), `repeat` 3, `durationSeconds` 10.0~10.4. 글에 시뮬레이터 수치는 하나도 없다 | - |
+| S-2 | SUMMARY.md 인용문(리드) | 인덱스와 증분 검색으로 검색 한 번이 65ms에서 2ms 아래로 내려갔다 | ⚠️ 추정 | 숫자 자체는 맞다(`filterTime` S1 64.96 / 64.39 → S2 1.82 / 0.87). 그러나 본문 "측정 결과"가 스스로 이 비교를 막는다: S1의 65ms는 살아남은 검색만의 평균이고(VERIFICATION 1-10), S2 평균은 62단계 중 23단계가 계산 없는 reuse다(RESULTS 분석 S2, PLAN 측정 지표). 리드는 단서 없이 같은 비교를 결론으로 쓴다 | 한 줄 요약을 편향 없는 지표로 바꿈: "검색어의 절반(51~54%)이 결과를 보여 주지 못했다", "CPU 사용이 절반 아래로" |
+| S-3 | SUMMARY.md "상황" | 상품 5만 개, 100ms마다 한 글자 입력 또는 삭제, 대소문자 구분 없이 이름 어디든 찾고 일치 부분을 강조한다 | ✅ 검증됨 | `Scenario.swift:11, 13`, PLAN 요구사항, `Stage0Search.swift:11` | - |
+| S-4 | SUMMARY.md "문제 정의" | S0 거르기 64.7 / 69.6ms는 16.7ms의 약 네 배, hitch ratio 630.1 / 778.2ms/s, Apple 기준 10ms/s 이상 심각. 원인은 입력과 거르기가 같은 메인 스레드에 있는 것 | ✅ 검증됨 | `stage0-uikit.json` filterTime 64.67, hitchTimeRatio 630.05. `stage0-swiftui.json` 69.61, 778.16. 64.7 ÷ 16.7 = 3.9, 69.6 ÷ 16.7 = 4.2. 인과는 RESULTS 분석 S0, VERIFICATION 0-25 | - |
+| S-5 | SUMMARY.md "Stage 0" 스니펫 | `products.filter { $0.name.lowercased().contains(query.lowercased()) }` | ✅ 검증됨 | `Stage0Search.swift:11`과 같다(`return`만 빠짐). 15바이트를 넘는 이름은 매번 새 문자열을 할당한다(VERIFICATION 0-9) | - |
+| S-6 | SUMMARY.md "Stage 0" 스니펫 아래 | 입력 한 번에 `lowercased()`가 5만 번 불린다 | ⚠️ 추정 | 인용한 스니펫에는 `lowercased()`가 클로저 안에 두 번 있다. 이름 변환 5만 번에 더해 `query.lowercased()`도 5만 번 불린다(`Stage2ViewController.swift:97` 주석 "검색어의 소문자 변환은 5만 번이 아니라 입력마다 한 번이다"가 이 차이를 가리킨다). LEARNING [Stage 0]의 "5만 번"은 `$0.name.lowercased()`만 물은 답이다. 글 문장은 대상을 밝히지 않아 스니펫과 맞지 않는다 | "이름 5만 개를 하나씩 lowercased()로 바꾼다 (검색어의 lowercased()도 그만큼 되풀이된다)"로 고침 |
+| S-7 | SUMMARY.md "Stage 1" 첫 문장과 비유, "Stage 2" 첫 문장, "예측과 실제" 2행, "트레이드오프" 표 | S1은 "같은 계산"을 옮긴 것이고 "음료 한 잔을 만드는 시간은 그대로", "일의 양은 그대로다" | ⚠️ 추정 | 실기기 결과로는 확인되지 않는다. RESULTS 대가 절이 "'S1은 계산량과 메모리가 S0과 같다'고 읽으면 안 된다"고 적었고, S1은 결과 전체의 일치 위치를 미리 구한다(`Stage1Search.swift:59-64`). 전 단계를 취소 없이 돌린 Mac 실험(정식 측정 아님)에서는 S0의 1.41배였다(VERIFICATION 1-10). 글도 "측정 결과"에서 S1 평균을 믿지 말라고 쓰면서 네 곳에서는 "그대로"라고 단정한다. 확인된 표현은 "줄지 않았다"까지다 | 네 곳 모두 "같은 계산", "그대로다"를 "줄지 않는다"로 바꾸고, Stage 1이 결과 전체의 강조 위치를 미리 구한다는 문장을 추가 |
+| S-8 | SUMMARY.md "Stage 1" 스니펫 | `if let searchTask { searchTask.cancel() // 앞 검색어의… }` 이하 9줄 | ❌ 틀림 | `Stage1ViewController.swift:82-97`과 다르다(경미, 동작 설명은 맞다). (1) `if` 블록 안의 `context.metrics.record("skippedResults", value: 100, unit: "%")`(85행)가 줄임표 없이 빠졌다. (2) 주석이 `cancel()` 윗줄(83행)에서 같은 줄 끝으로 옮겨지고 문장이 바뀌었다. `// ...`로 줄인 90-94행은 괜찮다 | 스니펫을 실제 코드와 같게 고침 (주석 위치, `skippedResults` 기록 줄 포함) |
+| S-9 | SUMMARY.md "Stage 1" 불릿 두 개 | `cancel()`은 표시만 남기고 계산 쪽이 `Task.checkCancellation()`으로 멈춘다. 취소와 "확인 후 적용"이 모두 메인 액터라 버전 번호나 락이 필요 없다 | ✅ 검증됨 | `Stage1Search.swift:54-61`, `Stage1ViewController.swift:82-97, 100-101`. VERIFICATION 1-3(테스트), 1-8(실험), 1-9(코드. 순서 보장을 직접 검사하는 테스트는 없다고 적혀 있다) | - |
+| S-10 | SUMMARY.md "Stage 2" 인덱스, 스니펫, 증분 검색, 지연 계산 | 이름 5만 개를 소문자 UTF-16 배열로 한 번만 바꾼다. 첫 코드 단위가 다르면 나머지를 비교하지 않는다. 글자를 더하면 앞 결과 안에서만, 지우면 계산 없이 다시 쓴다. 강조 위치는 보이는 행만 구한다 | ✅ 검증됨 | 스니펫은 `Stage2Index.swift:40-46`과 같다(주석 뒷문장만 줄임). `Stage2Index.swift:21-32`, `Stage2ResultStack.swift:29-37`, `Stage2Search.swift:22-29`. VERIFICATION 2-4, 2-5, 2-7, R-8 | - |
+| S-11 | SUMMARY.md "Stage 2" 마지막 문장, "필요한 CS 지식" 문자열 표현 | UTF-16 배열의 위치가 곧 `NSRange`의 위치라서 변환 없이 바로 쓴다 ("위치 변환도 필요 없다") | ⚠️ 추정 | UIKit에서만 맞다(`Stage2ViewController.swift:146-148`, VERIFICATION 2-17). SwiftUI는 `AttributedString`이 자기 인덱스만 받아 `String.Index(utf16Offset:in:)`를 거쳐 한 번 더 바꾼다(`Stage2View.swift:108-110`, PLAN 정합성 기준 "프레임워크 차이", VERIFICATION 0-24). 글은 두 프레임워크의 수치를 함께 싣고 있어 UIKit 한정이라는 말이 필요하다 | "UIKit에서는 … 바로 쓴다 (SwiftUI의 AttributedString은 자기 인덱스로 한 번 더 바꿔야 한다)"로 고침 |
+| S-12 | SUMMARY.md "측정 결과" 표 (7행 × 6칸 중 41칸) | Hitch ratio, `inputDelay`, `filterTime`, `skippedResults`, CPU 평균, `searchMemory`, Memory peak | ✅ 검증됨 | `results/iPhone14,7/stage{0,1,2}-{uikit,swiftui}.json`의 `metrics`, `customMetrics`를 표의 자릿수로 반올림한 값과 같다 (S-13의 한 칸 제외) | - |
+| S-13 | SUMMARY.md "측정 결과" 표 `inputDelay` S2 UIKit | 35.6ms | ❌ 틀림 | `stage2-uikit.json` inputDelay 35.5479 → 소수 한 자리로 35.5다. RESULTS 표의 35.55를 다시 반올림해 생긴 0.1ms 차이다(경미). RESULTS.md 17행과 LEARNING의 "28.1 → 35.6ms"에도 같은 값이 있다 | 35.5로 고침. RESULTS.md와 LEARNING.md의 같은 값도 고침 |
+| S-14 | SUMMARY.md "Stage 1은 부드럽지만 절반을 버린다" | 검색어의 51 / 54%가 결과를 보여 주지 못했다. 원인은 끝나기 전에 다음 글자가 와서 취소된 것. 60fps, CPU는 줄지 않았다 | ✅ 검증됨 | `stage1-*.json` skippedResults 51 / 54, fpsAverage 60.09 / 60.02, hitchTimeRatio 0, cpuAverage 70.5 → 85.3 / 89.2 → 87.3. 기록 위치는 `Stage1ViewController.swift:82-86, 110`, 인과는 RESULTS 분석 S1, VERIFICATION 1-11 | - |
+| S-15 | SUMMARY.md "Stage 1의 평균을 그대로 믿으면 안 된다"와 마라톤 비유 | `filterTime`, `searchMemory`는 취소된 검색이 빠진 평균이고, 오래 걸리고 결과가 큰 검색일수록 취소됐다. S1 `searchMemory`가 S0보다 작다. 확실한 대가는 `skippedResults`와 CPU다 | ✅ 검증됨 | searchMemory 0.21 / 0.22 → 0.14 / 0.14. VERIFICATION 1-10, 1-12, R-11, R-12(Mac 실험: 빠른 절반만 평균하면 0.135MB로 실기기 값과 같다), RESULTS 대가 절. 단, "끝까지 계산을 마치고 화면에 적용된 검색만"은 `searchMemory`에 맞고 `filterTime`은 계산을 끝냈으면 적용 전에 취소돼도 기록한다(`Stage1ViewController.swift:89-95`). 편집 제안 참고 | - |
+| S-16 | SUMMARY.md "Stage 2는 일이 줄었다", "대가는 메모리다" | 1.82 / 0.87ms, CPU 31.0 / 36.9%, 버려지는 검색어 없음, "36배"는 과장, 인덱스와 스택 3.89MB, Memory peak는 S0보다 3.1 / 4.6MB 증가 | ✅ 검증됨 | `stage2-*.json`. 65.0 ÷ 1.82 = 35.7. Memory peak 41.31 − 38.24 = 3.08, 51.92 − 47.33 = 4.59. reuse가 섞인다는 것은 RESULTS 분석 S2, VERIFICATION 2-9, 2-16 | - |
+| S-17 | SUMMARY.md "SwiftUI의 Stage 2에는 끊김이 남았다" | 126.4ms/s. 원인은 결과를 목록에 적용하는 쪽이라고 보며, Instruments로 확인하지 않은 가설이다 | ✅ 검증됨 | `stage2-swiftui.json` hitchTimeRatio 126.43. RESULTS 분석 "S2의 hitch"와 같은 수준으로 가설임을 밝혔다 | - |
+| S-18 | SUMMARY.md "필요한 CS 지식" | 프레임 예산 16.7ms, 협력적 취소, 메인 액터 직렬 실행, 전처리 인덱스, 검색 공간 줄이기, 생존 편향 | ✅ 검증됨 | 각 항목이 Stage와 연결돼 있고 근거는 S-4, S-9, S-10, S-15와 같다. 문자열 표현 항목의 "위치 변환도 필요 없다"만 S-11에 해당한다 | - |
+| S-19 | SUMMARY.md "예측과 실제" 1행 | 예측 "글자가 늦게 찍힌다…", 실제 S0 `inputDelay` 83.8 / 159.6ms, 세 증상은 원인이 다르다 | ✅ 검증됨 | LEARNING [Plan] Q1과 해설, `stage0-*.json` inputDelay 83.81 / 159.56. 인용문은 원문의 "검색와"를 "검색과"로 고쳐 적었다(편집 제안) | - |
+| S-20 | SUMMARY.md "예측과 실제" 2행 | `resultLatency`는 "줄지 않았고" | ⚠️ 추정 | UIKit은 65.10 → 65.27ms로 맞다. SwiftUI는 73.31 → 64.69ms로 숫자가 내려갔다(`stage{0,1}-swiftui.json`). 이 값은 적용된 검색만의 평균이라(VERIFICATION 1-11) 줄었는지 늘었는지 실기기 수치로는 말할 수 없다. 확인된 것은 "절반이 넘는 검색어는 결과가 아예 나오지 못했다"다 | 두 프레임워크의 값을 모두 적고 "적용된 검색만의 평균이라 줄었다고도 늘었다고도 말할 수 없다"로 고침 |
+| S-21 | SUMMARY.md "예측과 실제" 3행 | 실기기에서 더 많아질 것이라는 예측에 "51 / 54%로 많았다", "방향은 맞았지만 이유는 반대다" | ⚠️ 추정 | "더 많다"의 기준이 글에 없다. 예측 당시 시뮬레이터 값은 13%(2026-10-08)였지만, 같은 날 같은 코드로 다시 잰 시뮬레이터는 54 / 57%(`results/iPhone18,1-simulator/stage1-*.json`, 참고용)로 실기기보다 오히려 높다. LEARNING 마지막 [Measure]도 "그 차이는 기기 차이가 아니라 시뮬레이터 측정이 흔들린 것일 수 있다. 원인은 확인하지 않았다"고 적었다. "방향은 맞았다"는 확인되지 않는다. "이유는 반대다"(끝나지 못해 취소)는 RESULTS 분석 S1로 확인된다 | 예측 당시 시뮬레이터 값(13%)과 다시 잰 값(54 / 57%)을 함께 적고, 단정을 "다음 입력 전에 끝나지 못해서 버려진다"로 좁힘 |
+| S-22 | SUMMARY.md "예측과 실제" 4행 "배운 것" | 같은 로직이라도 결과를 화면에 적용하는 방식에 따라 다음 병목이 달라진다 | ⚠️ 추정 | 수치(UIKit 4.0, SwiftUI 126.4ms/s)는 맞다. 원인은 본문과 RESULTS가 "Instruments로 확인하지 않은 가설"이라고 한 내용인데 이 칸은 단정한다. SwiftUI는 결과 적용 말고도 입력 전달(`onChange`)과 강조 문자열 변환이 UIKit과 다르다 | "원인은 확인하지 못했다. 결과를 화면에 적용하는 쪽을 의심한다"로 고침 |
+| S-23 | SUMMARY.md "예측과 실제" 아래 문단 | 주석 하나가 사실과 반대였고, 메모리 추정이 실제 버퍼의 절반만 셌으며, 고친 뒤 다시 측정했다 | ✅ 검증됨 | VERIFICATION 1-10(❌), 0-13(❌, S0 결과 배열이 약 1.9배 차이), R-4 조치. 결과 JSON 날짜 2026-10-11T13:08~13:11Z | - |
+| S-24 | SUMMARY.md "트레이드오프 & 회고" 표 | S2: CPU가 절반 이하, 메모리 약 4MB, 인덱스 생성 49.2 / 41.5ms, 검색 타입 1개 → 3개 | ✅ 검증됨 | CPU 31.0 / 36.9%는 S1(85.3 / 87.3)과 S0(70.5 / 89.2) 어느 쪽에 대해서도 절반 이하다. searchMemory 3.89MB, indexBuildTime 49.23 / 41.46. `Search/Stage2/`에 타입 3개. "S1: 일의 양은 그대로다"는 S-7에 해당한다 | - |
+| S-25 | SUMMARY.md "트레이드오프 & 회고" 세 번째 불릿 | 이 규모에서는 인덱스만으로도 충분히 빨라서, 증분 검색은 데이터가 더 클 때 값을 한다 | ⚠️ 추정 | `results/`에는 인덱스만 쓴 경우와 증분 검색을 나눈 값이 없다(경로별 시간은 signpost로만 남긴다, PLAN 측정 지표). 근거는 LEARNING [Stage 2]의 Mac 마이크로 측정(정식 아님: 전체 훑기 약 0.6ms, narrow 0.08ms)뿐이다. 실기기에서 확인하지 않았다는 말이나 "Mac 참고값"이라는 출처가 필요하다 | 근거가 정식 측정이 아니어서 "이 규모에서는 인덱스만으로도 충분히 빨라서" 문장을 지움 |
+| S-26 | `assets/chart-iPhone14,7-hitchTimeRatio.svg`, `chart-iPhone14,7-skippedResults.svg`와 본문 | 차트 두 장과 그 아래 결론("Stage 1에서 끊김이 사라진다…", "Stage 1에서만 51과 54") | ✅ 검증됨 | `chart_svg`로 다시 만든 SVG가 두 파일 모두 현재 파일과 완전히 같다. 차트 하나에 지표 하나, 실기기만, 축은 0부터. 막대 값 630.1 / 778.2 / 0.0 / 0.0 / 4.0 / 126.4, 0 / 0 / 51 / 54 / 0 / 0이 JSON과 같고 alt와 본문 결론도 같다. PNG는 글자가 겹치거나 잘리지 않았다 | - |
+| S-27 | `assets/diagram-stage-timeline.svg` | S0은 메인에서 거르고, S1은 백그라운드에서 거르다 다음 입력에 취소되고 메인에서 적용하며, S2는 백그라운드에서 짧게 거르고 메인에서 적용한다 | ✅ 검증됨 | `Stage0Search.filter`(메인 동기), `Stage1ViewController.swift:82-97`(메인에서 취소와 적용, `@concurrent search`만 백그라운드), `Stage2ViewController.swift:92-112`와 같다. S1 막대의 "거르기 + 위치 계산"은 `Stage1Search.matches`와 맞다. 측정 수치가 없고("100ms"는 시나리오 값, "막대 길이는 설명용"이라고 밝힘) PNG에 겹침이 없다. 막대는 13개지만 세 줄 타임라인이라 읽힌다. 캡션 한 줄은 편집 제안 참고 | - |
+| S-28 | `assets/diagram-incremental-stack.svg` | 「보」는 full, 「보조」는 narrow, 지워서 「보」는 「보조」 항목을 꺼내 버리고 reuse. 아래 칸의 검색어는 항상 위 칸의 검색어에 포함된다 | ✅ 검증됨 | `Stage2ResultStack.swift:1-5, 29-37, 43-47`의 `plan`, `push`와 순서가 같고 경로 이름이 `Plan.name`과 같다. 상자 8개, 측정 수치 없음, PNG에 겹침 없음 | - |
+| S-29 | `assets/screenshot-search.png`와 캡션 | 실제 앱 화면이고, "SPEAK"로 3,105건이 나오며 일치 부분이 강조된다 | ✅ 검증됨 | 시나리오 소스로 다시 구한 결과가 3,105건이고, 앞 13개 이름과 순서가 캡처의 행과 모두 같다. 598 × 1300은 iPhone 17 Pro 시뮬레이터 화면 비율이다. 돋보기가 있는 입력창은 UIKit의 `UISearchTextField`다(SwiftUI는 `roundedBorder` `TextField`). Stage 2라는 것은 그림만으로는 구분할 수 없다. 본문이 가리키는 PNG 5개가 모두 있다 | - |
+
+#### 편집 제안
+- 뺄 것:
+  - "측정 결과" 표의 Hitch ratio 행과 `skippedResults` 행은 바로 위아래 차트와 같은 값이다. 표에서 두 행을 빼거나, 차트에 없는 지표(`inputDelay`, `filterTime`, CPU, 메모리)만 남긴다.
+  - "보조는 보의 결과 안에서만 찾는다"가 Stage 2 본문, 서류 더미 비유, 다이어그램 alt, 다이어그램 아래 문장에 네 번 나온다. 본문 한 번과 그림 아래 한 문장만 남긴다.
+  - 취소와 메인 액터 설명이 "Stage 1" 불릿 두 개와 "필요한 CS 지식"의 협력적 취소, 액터 직렬 실행에 거의 같은 문장으로 다시 나온다. CS 지식 쪽은 한 줄 정의로 줄인다.
+  - "예측과 실제" 아래 검증 문단은 진행 과정이다. "주석 한 줄이 사실과 반대였다"는 생존 편향 문단에 한 문장으로 붙이고 나머지는 VERIFICATION.md 링크로 대신한다.
+  - `searchMemory` 행의 S1 값(0.14)은 "믿으면 안 되는 값"으로만 쓰인다. 표에 남긴다면 칸에 표시를 달아 본문 설명과 묶는다.
+- 더 쉽게 풀 것:
+  - 카페 비유("문제 정의")에는 어디서 어긋나는지가 없다. Stage 1에서 이어 쓴 곳에만 있다. 처음 나온 곳에 한 줄을 붙이거나, 두 곳을 하나의 비유로 묶어 한 줄로 정리한다.
+  - 서류 더미 비유의 "어긋나는 지점"(책상이 메모리다, 서류가 바뀌면 다시 만든다)은 어긋남이 아니라 비유를 이어 간 대가 설명이다. 실제로 어긋나는 곳은 "지우면 위에 쌓인 더미는 버린다. 다시 「보조」를 치면 「보」의 더미에서 다시 추린다"와 "화면에 적용된 결과만 쌓인다"(`Stage2ResultStack.push`)다.
+  - 생존 편향 문단의 "이 두 지표는 끝까지 계산을 마치고 화면에 적용된 검색만 기록한다"는 두 지표를 나눠 쓴다: `filterTime`은 계산을 끝낸 검색, `searchMemory`는 화면에 적용된 검색 (PLAN 측정 지표).
+  - S-7: "일의 양은 그대로"를 "줄지 않았다(결과 전체의 강조 위치까지 미리 구하므로 오히려 늘 수 있다)"로 바꾸면 뒤의 "Stage 1의 평균을 그대로 믿으면 안 된다"와 모순되지 않는다.
+  - S-2: 리드의 "65ms에서 2ms 아래로"는 "버려지는 검색어가 사라졌다"와 CPU(85.3 / 87.3% → 31.0 / 36.9%)처럼 편향이 없는 지표로 바꾸는 편이 본문과 맞다.
+  - "예측과 실제" 1행 인용은 LEARNING 원문("검색와 후보 리스트")대로 둔다.
+- 그림:
+  - 5개로 상한(3~5개)에 닿아 있다. 더 넣지 않는다. 다섯 개 모두 본문보다 빨리 읽히고 틀린 곳은 없다.
+  - `diagram-stage-timeline`: Stage 1 캡션 "메인은 입력만 받는다"가 같은 줄의 "결과 적용" 막대와 어긋난다. "메인은 입력과 결과 적용만 한다"가 맞다. 취소된 막대는 "거르기", 살아남은 막대는 "거르기 + 위치 계산"으로 이름이 달라 서로 다른 일로 읽힐 수 있다.
+  - `diagram-incremental-stack`: "결과 스택" 제목과 상자 사이의 빈 공간이 크다. 내용에는 문제가 없다.
+- 빠진 핵심:
+  - PLAN의 Stage별 대가는 모두 들어 있다(S1: CPU, `filterTime`, `searchMemory`, `skippedResults`. S2: `searchMemory`, Memory, `indexBuildTime`, 복잡도). S1의 `resultLatency`만 수치가 없다(S-20).
+  - LEARNING에서 크게 빗나간 지점 가운데 "시뮬레이터만 봤다면 S1의 손실을 13%로 결론 냈을 것"(RESULTS "시뮬레이터는 비교 기준이 되지 못했다")이 글에 없다. 예측 3행(S-21)을 고칠 때 이 내용을 참고용 수치와 함께 한 줄로 넣으면 그 행의 근거가 생긴다.
+
+- **편집 제안 조치:** 차트와 겹치는 표의 두 행을 뺌. "보조는 보의 결과 안에서" 반복과 CS 지식의 중복 설명을 줄임. 검증 문단을 한 문장으로 줄임.
+  카페 비유에 어긋나는 지점을 추가하고, 서류 더미 비유의 어긋남과 대가를 나눠 씀. 생존 편향 문단에서 두 지표를 구분함. 예측 인용을 원문("검색와")대로 둠.
+  `diagram-stage-timeline`의 Stage 1 캡션과 막대 이름을 고침. 시뮬레이터 13% 이야기를 예측 3행에 넣음.
+
+### [Summary 재검토] 이전 ⚠️/❌ 10건은 모두 해결됐고, 새로 들어간 문장 가운데 시뮬레이터 수치의 환경 표기와 액터 설명 한 줄이 남았다 (2026-10-11)
+
+- 대상: 고친 `docs/SUMMARY.md`, `docs/assets/diagram-stage-timeline.svg`와 PNG, `docs/RESULTS.md` 17행, `docs/LEARNING.md` 286행, `results/iPhone14,7/*.json`, `results/iPhone18,1-simulator/*.json`, 커밋 0d4e068의 시뮬레이터 결과(2026-10-08), 인용된 Swift 코드
+- 판정: ✅ 16건 · ⚠️ 2건 · ❌ 0건 (대조한 수치 40개, 그림 5개 중 바뀐 1개를 다시 열어 봄)
+- 확인 방법: 앞선 검토와 같다. 바뀌지 않은 부분(차트 2장, 스택 다이어그램, 화면 캡처, 문제 정의와 Stage 2 수치)은 SVG 수정 시각과 결과 JSON이 그대로여서 앞선 판정(S-4, S-10, S-14, S-16, S-17, S-24, S-26, S-28, S-29)을 유지한다.
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| T-1 | SUMMARY.md 인용문(리드) (이전 S-2) | 검색어의 절반(51~54%)이 결과를 보여 주지 못했고, Stage 2에서 버려지는 검색어가 사라지고 CPU 사용이 절반 아래로 내려갔다 | ✅ 검증됨 | `stage1-*.json` skippedResults 51 / 54, `stage2-*.json` 0 / 0. CPU avg 85.3 / 87.3 → 31.0 / 36.9%(S0의 70.5 / 89.2에 대해서도 절반 아래). 편향이 있는 `filterTime` 비교가 리드에서 빠졌다 | - |
+| T-2 | SUMMARY.md "Stage 0" 스니펫 아래 (이전 S-6) | 이름 5만 개를 하나씩 `lowercased()`로 바꾸고, 검색어의 `lowercased()`도 그만큼 되풀이된다 | ✅ 검증됨 | `Stage0Search.swift:11`의 클로저 안에 두 호출이 모두 있다. `Stage2ViewController.swift:97` 주석 | - |
+| T-3 | SUMMARY.md "Stage 1" 첫 문단과 비유, "예측과 실제" 2행, "트레이드오프" 표 (이전 S-7) | Stage 0의 거르는 코드를 그대로 옮기고 강조 위치를 결과 전체에 대해 미리 구한다. 시간과 일의 양은 "줄지 않는다" | ✅ 검증됨 | `Stage1Search.swift:54-64`, VERIFICATION 1-1(거르기 식과 위치 계산이 S0과 같음). "그대로"라는 단정이 네 곳 모두 "줄지 않는다"로 바뀌어 RESULTS 대가 절과 맞는다 | - |
+| T-4 | SUMMARY.md "Stage 1" 스니펫 (이전 S-8) | `if let searchTask { … }`와 `searchTask = Task { … }` | ✅ 검증됨 | `Stage1ViewController.swift:82-86`과 글자까지 같고, 88-96행은 90-94행만 `// ...`로 줄였다 | - |
+| T-5 | SUMMARY.md "Stage 2" 마지막 문장 (이전 S-11) | UIKit에서는 UTF-16 위치를 `NSRange`로 바로 쓰고, SwiftUI의 `AttributedString`은 자기 인덱스로 한 번 더 바꾼다 | ✅ 검증됨 | `Stage2ViewController.swift:146-148`, `Stage2View.swift:108-110`, PLAN 정합성 기준 "프레임워크 차이" | - |
+| T-6 | SUMMARY.md 측정 표, RESULTS.md 17행, LEARNING.md 286행 (이전 S-13) | `inputDelay` S2 UIKit 35.5ms | ✅ 검증됨 | `stage2-uikit.json` inputDelay 35.5479. 세 문서 모두 35.5이고 35.6은 남아 있지 않다. RESULTS의 생성 표(35.55)는 그대로다 | - |
+| T-7 | SUMMARY.md "예측과 실제" 2행 (이전 S-20) | `resultLatency` 65.1 → 65.3ms / 73.3 → 64.7ms. 적용된 검색만의 평균이라 줄었다고도 늘었다고도 말할 수 없다 | ✅ 검증됨 | `stage0-*.json` 65.10 / 73.31, `stage1-*.json` 65.27 / 64.69. VERIFICATION 1-11, RESULTS 대가 절 | - |
+| T-8 | SUMMARY.md "예측과 실제" 3행 수치 (이전 S-21) | 실기기 51 / 54%. 사흘 전 시뮬레이터 13%, 같은 날 다시 잰 시뮬레이터 54 / 57%(참고용). 처음 값만 봤다면 13%로 결론 냈을 것 | ✅ 검증됨 | `results/iPhone18,1-simulator/stage1-*.json` 54 / 57(2026-10-11). 커밋 0d4e068의 같은 파일은 UIKit 13, SwiftUI 16(2026-10-08). 13%는 예측 질문이 든 UIKit 값이다(LEARNING [Measure], RESULTS "시뮬레이터는 비교 기준이 되지 못했다"). "방향은 맞았다"는 단정이 빠졌고 "참고용"이 붙었다 | - |
+| T-9 | SUMMARY.md "예측과 실제" 3행 | 시뮬레이터 수치(13%, 54 / 57%)와 "시뮬레이터 수치는 잴 때마다 달라" | ⚠️ 추정 | 두 가지가 빠졌다. (1) 시뮬레이터 수치에 기기와 OS가 없다(iPhone 17 Pro 시뮬레이터, Release). (2) 두 측정은 런타임이 달랐다: 2026-10-08은 iOS 26.5, 2026-10-11은 iOS 26.1(결과 JSON의 `systemVersion`). RESULTS는 "런타임 버전과 Mac의 상태가 달랐다는 것 외에 원인은 확인하지 않았다"고 적었다. 두 번의 측정으로 "잴 때마다 다르다"고 일반화했고, 조건이 달랐다는 사실이 글에 없다 | 기기와 런타임(iPhone 17 Pro 시뮬레이터, iOS 26.5 → 26.1)을 적고 "두 번 잰 값이 크게 달라 (원인은 확인하지 않았다)"로 고침 |
+| T-10 | SUMMARY.md "예측과 실제" 4행 (이전 S-22) | 원인은 확인하지 못했고, 결과를 화면에 적용하는 쪽을 의심하고 있다 | ✅ 검증됨 | RESULTS 분석 "S2의 hitch"와 같은 수준의 가설 표기다. 수치 4.0 / 126.4ms/s는 `stage2-*.json` | - |
+| T-11 | SUMMARY.md "트레이드오프 & 회고" 세 번째 불릿 (이전 S-25) | 글자를 이어 치거나 지울 때만 앞 결과를 쓸 수 있고, 새 단어를 치면 전체를 다시 훑는다 | ✅ 검증됨 | `Stage2ResultStack.swift:29-37`: 새 검색어에 포함되지 않는 항목은 모두 꺼내고 스택이 비면 `.full`이다. 측정하지 않은 "인덱스만으로도 충분히 빠르다"는 문장이 빠졌다 | - |
+| T-12 | SUMMARY.md "문제 정의" 새 불릿 | 카페 비유가 어긋나는 지점: 메인 스레드는 하던 일이 끝날 때까지 다른 일을 전혀 하지 못한다 | ✅ 검증됨 | S0은 `filter`를 메인에서 동기로 부른다(`Stage0Search.swift:7-12`, VERIFICATION 0-14, 0-25). 그동안 프레임이 밀린 것이 hitch 630.1 / 778.2ms/s다 | - |
+| T-13 | SUMMARY.md "Stage 2" 서류 더미 불릿 두 개와 그림 아래 문장 | 지우면 위 더미는 버리고 같은 글자를 다시 치면 새로 추린다. 화면에 적용된 결과만 쌓인다. 경로 이름은 `Stage2ResultStack.Plan`과 같다. 대가는 메모리다 | ✅ 검증됨 | `Stage2ResultStack.swift:31-34`(꺼내 버림), `:43-47`과 `Stage2ViewController.swift:117`(`push`는 `apply`에서만), `:8-22`(`reuse`, `narrow`, `full`). searchMemory 3.89MB | - |
+| T-14 | SUMMARY.md "측정 결과" 표 (5행 × 6칸) | `inputDelay`, `filterTime`, CPU 평균, `searchMemory`, Memory peak. Hitch ratio와 `skippedResults`는 차트로 보인다 | ✅ 검증됨 | 30칸 모두 `results/iPhone14,7/*.json`을 표의 자릿수로 반올림한 값과 같다. 뺀 두 지표는 차트 두 장과 본문("문제 정의", "Stage 1은 부드럽지만…")에 그대로 있다 | - |
+| T-15 | SUMMARY.md 마라톤 비유 문단 | `filterTime`은 계산을 끝까지 마친 검색만, `searchMemory`는 화면에 적용된 검색만 기록한다. 오래 걸리고 결과가 큰 검색일수록 취소되기 쉽다 | ✅ 검증됨 | `Stage1ViewController.swift:89-92, 111`, PLAN 측정 지표, VERIFICATION 1-12, R-11, R-12 | - |
+| T-16 | SUMMARY.md "필요한 CS 지식" 액터의 직렬 실행 | 메인 액터는 한 번에 한 작업만 실행하므로, 그 안의 코드끼리는 순서가 뒤바뀌지 않는다 | ⚠️ 추정 | 고치면서 범위가 넓어졌다. 확인된 것은 "취소(`submit`)와 '확인 후 적용'이 서로 끼어들지 못한다"까지다(VERIFICATION 1-9, LEARNING [Stage 1] "둘 중 하나가 먼저 끝까지 실행된다"). 직렬 실행은 동시에 돌거나 `await` 없는 구간에 끼어드는 것을 막을 뿐, 어느 작업이 먼저 실행되는지는 정하지 않는다. 이 주제에서도 결과가 끝나는 순서는 입력 순서와 다를 수 있고, 그래서 취소 확인이 필요하다 | "취소와 확인 후 적용이 서로 끼어들지 못한다"로 범위를 좁힘 |
+| T-17 | `assets/diagram-stage-timeline.svg`와 PNG | S1 막대 이름 "검색 (끝나기 전에 취소)", "검색 (거르기 + 위치 계산)", 캡션 "메인은 입력을 받고 결과를 적용하기만 한다" | ✅ 검증됨 | `Stage1ViewController.swift:81-114`(메인: `submit`, `apply`), `Stage1Search.swift:36-66`(백그라운드: 거르기와 위치 계산). 두 막대가 같은 일로 읽히고 캡션이 "결과 적용" 막대와 맞는다. 측정 수치가 없고 PNG에 겹치거나 잘린 글자가 없다. SVG와 PNG의 수정 시각이 같다 | - |
+| T-18 | SUMMARY.md "예측과 실제" 아래 한 줄 | 코드를 따로 검증하면서 틀린 주석과 측정 코드가 나와 고친 뒤 다시 측정했다 | ✅ 검증됨 | VERIFICATION 1-10(주석), 0-13과 0-8(측정 코드), R-4 조치(재측정) | - |
+
+#### 편집 제안
+- 그림: `diagram-incremental-stack` 바로 아래 문장이 "경로 이름은 코드의 `Stage2ResultStack.Plan`과 같다"로 바뀌었다. 그림에서 읽어야 할 결론이 아니라 표기 설명이다. "글자를 더할 때는 앞 결과 안에서만 찾고, 지울 때는 쌓아 둔 결과를 다시 쓴다" 같은 결론 한 문장을 그림 아래에 두고, 경로 이름은 괄호로 붙인다.
+- 더 쉽게 풀 것: "필요한 CS 지식"의 문자열 표현 항목은 여전히 "위치 변환도 필요 없다"로 끝난다. 본문(T-5)처럼 "UIKit에서는"을 붙이면 두 곳이 같아진다.
+- T-9는 3행 "실제" 칸에 "(iPhone 17 Pro 시뮬레이터, iOS 26.5 → 26.1 런타임)"을 넣고 "잴 때마다 달라"를 "두 번 잰 값이 크게 달라"로 바꾸면 해결된다.
+- T-16은 "그 안의 코드끼리는 서로 끼어들지 못한다" 정도가 확인된 범위다.
+- 그 밖의 앞선 제안(표와 차트 중복, 반복 문장, 검증 문단, 비유의 어긋나는 지점, 인용 원문)은 모두 반영됐다. 그림은 5개 그대로다.
+
+- **편집 제안 조치:** `diagram-incremental-stack` 아래 문장을 그림의 결론으로 되돌리고 경로 이름은 괄호로 붙임. CS 지식의 문자열 표현 항목에 "UIKit에서는"을 붙임.
