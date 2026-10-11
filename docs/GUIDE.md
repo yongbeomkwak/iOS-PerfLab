@@ -55,7 +55,7 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 | **summarized** | ① 뺄 것, 풀어 쓸 개념, 넣을 그림 확인 ② 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글과 그림 작성, 글 검토 | `docs/SUMMARY.md`, `docs/assets/` | TODO 없음, VERIFICATION `[Summary]`에 미해결 항목 없음, 차트가 결과 JSON과 같음, 글이 가리키는 이미지가 있음 |
 | **archived** | 회고: 파이프라인에서 바꾸고 싶은 점 | README 표 갱신 | README | README에 등록 |
 
-주제 하나는 `topic/<NN>-<slug>` 브랜치 하나에서 진행한다. 각 단계가 끝날 때 Claude가 커밋할지 묻고, archived까지 끝나면 `main`에 머지할지 묻는다. 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문과 머지 규칙은 [COMMITS](COMMITS.md)를 따른다.
+주제 하나는 `topic/<NN>-<slug>` 브랜치 하나에서 진행한다. 각 단계가 끝날 때 Claude가 커밋할지 묻고, archived까지 끝나면 GitHub PR로 `main`에 머지할지 묻는다 (주제가 아닌 작은 수정 브랜치는 PR 없이 로컬에서 머지한다). 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문과 머지 규칙은 [COMMITS](COMMITS.md)를 따른다.
 
 ### 최적화의 범위
 
