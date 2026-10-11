@@ -8,7 +8,7 @@
 | **GUIDE (이 문서)** | 진행하는 사람 | 파이프라인, 역할, 명령어, 측정 해석 |
 | [CONVENTIONS](CONVENTIONS.md) | 코드를 쓰고 읽는 사람 | 포맷, 이름, 주석, Stage 파일 구조 |
 | [COMMITS](COMMITS.md) | 커밋하는 사람 | 커밋 제목과 본문 형식, 설정 변경 기록법, 브랜치와 머지 |
-| `CLAUDE.md`, `.claude/` | Claude | 단계별 절차(skill), 규칙, 리뷰 에이전트 |
+| `CLAUDE.md`, `.claude/` | Claude | 단계별 절차(skill), 규칙, 리뷰와 검증 에이전트 |
 
 ---
 
@@ -34,6 +34,7 @@ flowchart LR
 | | 나 (사람) | Claude |
 |---|---|---|
 | 하는 일 | 예측, 질문, 결정, 이해 확인 | 설계, 구현, 측정, 문서 작성 |
+| 검증 | 의심스러운 코드에 질문한다 | 구현한 Claude와 분리된 에이전트가 코드와 글을 검증한다 (6절) |
 | 체크포인트 | 질문에 먼저 답한다 (틀려도 괜찮다) | 답을 받기 전에는 다음 작업을 하지 않는다 |
 | 기록 | — | 내 답을 원문 그대로 `docs/LEARNING.md`에 남긴다 |
 
@@ -47,9 +48,9 @@ Claude Code에서 `/perflab`을 실행하면 현재 상태에 맞는 단계를 �
 |---|---|---|---|---|
 | **proposed** | 후보 3개 중 하나 고르기 | 후보 제안, `perflab new`로 주제 폴더 생성 | `topic.json` | 메타데이터, 패키지와 카탈로그 등록 |
 | **planned** | ① 병목 예측, 내가 만든다면 어떻게 만들지 ② 계획 승인 | 시나리오, 지표, Stage 전략과 대가 지표 설계 | `docs/PLAN.md`, `Scenario.swift` | PLAN과 Scenario에 TODO 없음, 대가마다 지표 있음, LEARNING `[Plan]` |
-| **stage0~2** | ① 이 전략이 왜 빠를지, 대가는 무엇인지 예측 ② 핵심 변경 이해 확인, 시뮬레이터에서 HUD 보기 | UIKit과 SwiftUI 구현, 정합성 테스트, 공정성 리뷰 | `UIKit/`, `SwiftUI/`, `Tests/` | 마커 제거, 머리말(`// 전략:`), lint 통과, LEARNING `[Stage N]` |
+| **stage0~2** | ① 이 전략이 왜 빠를지, 대가는 무엇인지 예측 ② 핵심 변경 이해 확인, 시뮬레이터에서 HUD 보기 | UIKit과 SwiftUI 구현, 정합성 테스트, 공정성 리뷰, 코드 검증 | `UIKit/`, `SwiftUI/`, `Tests/`, `docs/VERIFICATION.md` | 마커 제거, 머리말(`// 전략:`), lint 통과, LEARNING `[Stage N]`, VERIFICATION `[Stage N]`에 미해결 항목 없음, 검증 뒤 코드 변경 없음 |
 | **measured** | ① 결과 보기 전 수치 예측 ② 예측과 다른 이유 함께 추론 | Release 자동 측정, 결과표, 대가 비교, 분석 | `results/`, `docs/RESULTS.md` | 한 기기에서 모든 조합과 baseline 결과, 모든 Stage에 대가 지표, LEARNING `[Measure]` |
-| **summarized** | 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글 작성 | `docs/SUMMARY.md` | TODO 없음 |
+| **summarized** | ① 뺄 것, 풀어 쓸 개념, 넣을 그림 확인 ② 초안 리뷰, "한 문장으로 설명하면?" | 블로그용 글과 그림 작성, 글 검토 | `docs/SUMMARY.md`, `docs/assets/` | TODO 없음, VERIFICATION `[Summary]`에 미해결 항목 없음, 차트가 결과 JSON과 같음, 글이 가리키는 이미지가 있음 |
 | **archived** | 회고: 파이프라인에서 바꾸고 싶은 점 | README 표 갱신 | README | README에 등록 |
 
 주제 하나는 `topic/<NN>-<slug>` 브랜치 하나에서 진행한다. 각 단계가 끝날 때 Claude가 커밋할지 묻고, archived까지 끝나면 `main`에 머지할지 묻는다. 커밋 메시지는 `[#NN] <status>: <요약>` 형식이고, 본문과 머지 규칙은 [COMMITS](COMMITS.md)를 따른다.
@@ -98,6 +99,11 @@ scripts/perflab devices                   # 기기 목록
 scripts/perflab measure <topic> [--device "<실기기>"] [--repeat 3]
 scripts/perflab table <topic>             # RESULTS.md 결과표 생성
 
+# 검증과 정리
+scripts/perflab fingerprint <topic>       # 주제 코드의 지문 (VERIFICATION.md에 기록)
+scripts/perflab chart <topic> --metric <이름> [--device <results 폴더>]   # 결과 JSON으로 차트(SVG+PNG) 생성
+scripts/perflab png <topic>               # docs/assets/의 SVG를 PNG로 변환 (블로그 업로드용)
+
 # 아카이빙
 scripts/perflab readme                    # README Topics 표 갱신
 ```
@@ -140,7 +146,49 @@ scripts/perflab readme                    # README Topics 표 갱신
 
 정식 결과는 **실기기 + Release**다. 시뮬레이터는 Mac CPU와 GPU를 쓰기 때문에 수치는 참고용이며, 결과표에 그렇게 표시된다.
 
-## 6. 처음 준비
+## 6. 검증과 정리
+
+구현도 설명도 Claude가 하므로, **틀린 설명이 그럴듯하게 들릴 수 있다.** 그래서 구현한 Claude와 분리된 에이전트가 코드와 글을 따로 검증하고, 그 기록이 없으면 다음 단계로 넘어가지 못하게 한다.
+
+### 코드 검증 (`code-verifier`)
+
+Stage 구현 직후, 사용자에게 설명하기 **전에** 실행한다. 구현 의도는 전달받지 않고 코드와 문서만 본다.
+
+```
+구현 → format/test/build → stage-reviewer(공정성) → code-verifier(코드 검증) → 조치 → 구현 후 체크포인트 → advance
+```
+
+코드와 주석이 하는 주장을 하나씩 꺼내 판정한다: 주석의 사실 주장, 머리말(`// 전략:`, `// 변경:`)과 코드의 일치, API가 말한 대로 동작하는지, 각 코드가 왜 필요한지, 개선 주장의 근거, 지표 기록이 PLAN.md 정의와 같은지.
+
+| 판정 | 뜻 | 다음 |
+|---|---|---|
+| ✅ 검증됨 | 테스트, 측정, 실험, 공식 문서, 코드 중 하나로 확인했다 | - |
+| ⚠️ 추정 | 그럴듯하지만 확인하지 못했다 | 실험으로 확인하거나, 단정을 빼거나, "추정"이라고 밝힌다 |
+| ❌ 틀림 | 근거와 어긋난다 | 고치거나 지운다 |
+
+- 결과는 `docs/VERIFICATION.md`에 Stage마다 남는다. 판정은 고치지 않고 `조치` 열에 무엇을 했는지 적는다. 무엇이 불확실했는지가 기록으로 남는다.
+- **검증받은 코드와 지금 코드가 같아야 한다.** 검증이 끝나면 코드의 지문(`scripts/perflab fingerprint`)을 적어 두고, `advance`는 그 지문이 지금 코드와 다르면 실패한다. 코드를 고쳤으면 다시 검증받는다.
+- 내가 코드에 의문이 생기면 언제든 묻는다. 그 문답도 LEARNING.md에 남고, 코드가 바뀌면 다시 검증된다.
+
+### 글과 그림 (`summary-reviewer`)
+
+SUMMARY.md는 블로그에 올리는 글이다. 세 가지를 지킨다.
+
+1. **줄인다.** 독자가 얻어 갈 것 2~3가지에 쓰이지 않는 내용(진행 과정, 곁가지 지표, 전체 표)은 빼고 링크로 대신한다.
+2. **핵심은 풀어 쓴다.** 핵심 개념 2~3개는 비유로 설명하고, 비유마다 어디서 어긋나는지 한 줄을 붙인다.
+3. **그림은 정확할 때만 넣는다.** 글보다 빨리 이해되는 것만, 글 하나에 3~5개까지.
+
+| 그림 | 만드는 법 | 틀리지 않게 하는 장치 |
+|---|---|---|
+| 차트 | `scripts/perflab chart <topic> --metric <이름>` | 결과 JSON에서 바로 그린다. 숫자를 옮겨 적는 단계가 없고, 결과와 달라지면 `advance`가 실패한다. 차트 하나에 지표 하나, 축은 0부터 |
+| 다이어그램 | `docs/assets/diagram-<이름>.svg`를 쓰고 `scripts/perflab png` | 상자 7개 안팎, 실제 코드의 타입과 호출 순서만, 수치는 적지 않는다. `summary-reviewer`가 코드와 대조한다 |
+| 화면 캡처 | 앱의 실제 화면 | 꾸미거나 합성하지 않는다 |
+
+- 글을 쓰기 전에 Claude가 "뺄 것, 풀어 쓸 것, 넣을 그림" 목록을 먼저 보여 준다. 여기서 방향을 정한다.
+- 초안이 나오면 `summary-reviewer`가 글의 모든 수치를 결과 JSON과, 다이어그램과 코드 인용을 실제 코드와 대조한다. 가설을 사실처럼 쓴 문장도 잡는다.
+- 블로그(Tistory)는 Mermaid와 SVG를 그리지 못한다. 글에는 PNG를 넣고, 올릴 때 `docs/assets/`의 PNG를 함께 업로드한다.
+
+## 7. 처음 준비
 
 - Xcode 26 이상, iOS 26 시뮬레이터 (`scripts/perflab build`가 iPhone 17 Pro를 자동으로 찾는다)
 - 실기기 측정 (measure 단계 전까지 준비):
@@ -148,12 +196,14 @@ scripts/perflab readme                    # README Topics 표 갱신
   2. PerfLab 타깃과 PerfLabUITests 타깃의 Signing에서 Team을 지정한다.
   3. `scripts/perflab devices`에 기기 이름이 나오는지 확인한다.
 
-## 7. 막혔을 때
+## 8. 막혔을 때
 
 | 상황 | 해결 |
 |---|---|
 | `advance`가 실패한다 | 출력된 미충족 항목을 해결한다. 검사를 우회하거나 `topic.json`을 직접 고치지 않는다. |
 | lint 위반 | `scripts/perflab format <주제 경로>`로 자동 수정한다. |
 | 측정 결과의 편차가 크다 | 기기 발열, 저전력 모드, 백그라운드 앱을 확인하고 다시 측정한다. 재측정한 사실은 RESULTS.md에 기록한다. |
+| `advance`가 "검증 뒤에 코드가 바뀜"으로 실패한다 | 바뀐 코드를 `code-verifier`로 다시 검증받고 새 지문을 적는다. 지문만 고쳐 적지 않는다. |
+| 설명이 의심스럽다 | 근거를 묻는다. 근거가 테스트, 측정, 실험, 공식 문서가 아니면 "추정"이다. |
 | 계획이 구현과 맞지 않는다 | 구현을 멈추고 PLAN.md 수정을 논의한다. 계획을 몰래 바꾸지 않는다. |
 | Shared를 고쳐야 할 것 같다 | 모든 주제에 쓸 수 있는 일반적인 기능인지 먼저 따진다. Claude는 고치기 전에 알린다. |
