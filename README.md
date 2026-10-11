@@ -164,7 +164,7 @@ scripts/perflab build | format | lint
 <!-- perflab:topics:start -->
 | # | 카테고리 | 주제 | 키워드 | 프레임워크 | 상태 | 문서 |
 |:---:|---|---|---|---|---|---|
-| - | - | 아직 주제가 없습니다 | - | - | - | - |
+| 01 | Concurrency | 5만 개 항목 검색 자동완성, 키워드 하이라이트까지 타이핑을 따라가려면? | `Task` `Cancellation` `String.Index` `UTF-16` `AttributedString` `IncrementalSearch` | UIKit, SwiftUI | archived | [Summary](Packages/Topics/Concurrency/01-search-autocomplete-highlight/docs/SUMMARY.md) |
 <!-- perflab:topics:end -->
 
 ### 후보 주제 (Backlog)
@@ -176,7 +176,7 @@ scripts/perflab build | format | lint
 - 그림판 앱에서 실시간 드로잉 지연 줄이기 — `CoreGraphics` `Metal` `Touch`
 - 주식 앱의 실시간 차트를 부드럽게 그리려면? — `CoreGraphics` `CALayer` `Thread`
 - 수만 개 모델을 매 초 갱신하는 대시보드에서 `class` 모델이 느린 이유 — `ARC` `struct` `Copy-on-Write`
-- 검색어마다 쏟아지는 필터링 작업이 서로 발목을 잡을 때 — `Actor` `Task` `Cancellation`
+- 수만 행의 결과가 통째로 바뀔 때 SwiftUI `List` 갱신이 프레임을 넘기지 않게 하려면? — `List` `Identity` `Diffing`
 
 <br>
 
