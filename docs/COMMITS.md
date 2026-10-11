@@ -91,6 +91,7 @@ fix(shared): CPU 사용률이 종료된 스레드를 빠뜨리지 않게 하기
 ## 4. 브랜치와 머지
 
 작업 하나는 브랜치 하나에서 끝내고 `main`에 머지한다. `main`에는 직접 커밋하지 않는다. 머지 커밋이 "작업 한 단위"의 기록이 된다.
+주제 브랜치는 GitHub PR로, 그 밖의 브랜치는 로컬에서 머지한다.
 
 ### 브랜치 이름
 
@@ -104,6 +105,17 @@ fix(shared): CPU 사용률이 종료된 스레드를 빠뜨리지 않게 하기
 
 ### 머지
 
+브랜치 종류에 따라 머지하는 곳이 다르다. 어느 쪽이든 **머지 커밋을 남기고**(fast-forward 금지), rebase나 squash는 하지 않는다. 단계별 커밋이 학습 기록이다.
+
+| 브랜치 | 머지 방법 | 이유 |
+|---|---|---|
+| 주제 (`topic/<NN>-<slug>`) | **GitHub PR** (merge commit 방식) | 주제 하나의 설명, 결과, 확인 내용이 PR 페이지 하나로 남는다 |
+| 그 밖 (`<type>/<kebab-case>`) | 로컬에서 `--no-ff` 머지 | 작은 수정마다 PR을 열 필요는 없다. 머지 커밋이 기록이다 |
+
+머지 전에 브랜치에서 `scripts/perflab lint`와 `scripts/perflab build`가 통과해야 한다.
+
+#### 그 밖의 브랜치: 로컬 머지
+
 ```bash
 git switch main
 git merge --no-ff <브랜치> -F <메시지 파일>
@@ -111,22 +123,54 @@ git branch -d <브랜치>
 ```
 
 - **`--no-ff`로 머지한다.** fast-forward가 되면 머지 커밋이 생기지 않아 어디서부터 어디까지가 한 작업인지 사라진다.
-- rebase나 squash는 하지 않는다. 단계별 커밋이 학습 기록이다.
-- 머지 전에 브랜치에서 `scripts/perflab lint`와 `scripts/perflab build`가 통과해야 한다.
-- 머지 커밋 메시지:
-
-  ```
-  merge(<브랜치>): <이 작업으로 무엇이 달라졌는지 한 줄>
-
-  요약:
-  - 이 브랜치의 커밋이 한 일 (커밋 제목을 묶어서 2~5줄)
-
-  확인:
-  - 머지 전 검증 결과
-  ```
-
-- 주제 브랜치는 archived 커밋 뒤에 머지한다. 머지 제목 예) `merge(topic/01-image-feed-scroll): #01 수천 장 이미지 피드 스크롤 아카이빙`
 - push는 따로 요청이 있을 때만 한다.
+
+#### 주제 브랜치: PR
+
+주제 브랜치는 archived 커밋 뒤에 PR로 머지한다. **원격에 올리는 일이므로 단계마다 사용자 확인을 받는다.**
+
+1. **올리기 전에 점검한다.** 공개 저장소다. 커밋 내용과 커밋 메시지에 아래가 없는지 검색한다.
+   - 서명 Team ID, 기기 식별자(UDID), 계정 정보
+   - 로컬 경로(`/Users/...`, 임시 폴더)와 세션 id. 검증 에이전트의 보고에 섞여 들어오기 쉽다
+2. **`main`을 먼저 원격에 맞춘다.** 로컬 `main`에만 있는 머지(주제 진행 중에 한 파이프라인 수정 등)를 push한다.
+   올리지 않으면 PR에 주제와 무관한 커밋이 함께 보인다.
+3. 주제 브랜치를 push하고 PR을 연다.
+
+   ```bash
+   git push origin topic/<NN>-<slug>
+   gh pr create --base main --head topic/<NN>-<slug> --title "[#NN] <주제 제목>" --body-file <본문 파일>
+   ```
+
+   PR 본문에는 Stage별 전략, 실기기 핵심 결과(기기, OS, 빌드 구성 포함), 들어 있는 것, 확인한 것, **확인하지 않은 것**을 쓴다.
+4. PR을 merge commit 방식으로 머지한다. 제목과 본문은 아래 머지 커밋 메시지 형식을 쓰고, 제목 끝에 PR 번호를 붙인다.
+
+   ```bash
+   gh pr merge <번호> --merge --subject "merge(topic/<NN>-<slug>): <한 줄> (#<번호>)" --body-file <메시지 파일>
+   ```
+
+5. 로컬을 맞추고 브랜치를 지운다.
+
+   ```bash
+   git switch main && git pull --ff-only
+   git branch -d topic/<NN>-<slug>
+   git push origin --delete topic/<NN>-<slug>
+   ```
+
+- 주제 브랜치를 로컬 `main`에 먼저 머지하지 않는다. 먼저 머지하면 PR을 열 대상이 사라지고, PR을 만들려면 로컬 머지 커밋을 버려야 한다.
+
+#### 머지 커밋 메시지
+
+```
+merge(<브랜치>): <이 작업으로 무엇이 달라졌는지 한 줄>
+
+요약:
+- 이 브랜치의 커밋이 한 일 (커밋 제목을 묶어서 2~5줄)
+
+확인:
+- 머지 전 검증 결과
+```
+
+- 주제 머지 제목 예) `merge(topic/01-image-feed-scroll): #01 수천 장 이미지 피드 스크롤 아카이빙 (#12)`
 
 ## 5. 템플릿
 

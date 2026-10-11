@@ -18,7 +18,8 @@
 7. **최적화는 저수준 API만이 아니다.** 자료구조, 값/참조 타입(`class` ↔ `struct`), 메모리, 동시성, 구조 개선 등 CS 지식 전반을 쓴다 (`docs/GUIDE.md` 3절).
 8. **확인하지 않은 것을 사실처럼 쓰지 않는다.** 코드는 `code-verifier`, 글은 `summary-reviewer` 에이전트가 검증하고 `docs/VERIFICATION.md`에 남긴다.
    주제 코드를 고치면 다시 검증받는다. 지문만 고쳐 적거나 판정을 바꿔 적지 않는다 (`docs/GUIDE.md` 6절).
-9. **작업마다 브랜치를 딴다.** 주제는 `topic/<NN>-<slug>`, 그 밖은 `<type>/<kebab-case>`. `main`에 직접 커밋하지 않고, 작업이 끝나면 사용자 확인 후 `--no-ff`로 머지한다 (`docs/COMMITS.md` 4절).
+9. **작업마다 브랜치를 딴다.** 주제는 `topic/<NN>-<slug>`, 그 밖은 `<type>/<kebab-case>`. `main`에 직접 커밋하지 않는다.
+   작업이 끝나면 사용자 확인 후 머지한다. **주제 브랜치는 GitHub PR**(merge commit)로, 그 밖의 브랜치는 로컬에서 `--no-ff`로 머지한다 (`docs/COMMITS.md` 4절).
 
 ## 파이프라인
 
