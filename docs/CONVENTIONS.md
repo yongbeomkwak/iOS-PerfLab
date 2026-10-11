@@ -76,6 +76,22 @@ guard cell.itemID == item.id else { return }
 guard cell.itemID == item.id else { return }
 ```
 
+### 사실 주장
+
+주석이 **동작, 비용, 메모리, 스레드**를 단정하면 그것은 주장이고, 주장에는 근거가 있어야 한다. `code-verifier`가 주장마다 근거를 확인한다 (`docs/GUIDE.md` 6절).
+
+- 근거는 테스트, 측정 결과, 직접 돌려 본 실험, SDK 헤더나 공식 문서 중 하나다. 기억이나 통념은 근거가 아니다.
+- 확인하지 못했으면 단정하지 않는다. 뺄 수 없는 설명이면 "추정"이라고 쓴다.
+- 수치(바이트, ms, 배수)를 주석에 쓸 때는 어디서 나온 값인지 알 수 있어야 한다.
+
+```swift
+// ✅ 확인한 것만 단정한다
+// Task.checkCancellation: 취소 표시가 있으면 CancellationError를 던진다 (ConsistencyTests.stage1StopsWhenCancelled).
+
+// ❌ 확인하지 않은 비용을 단정한다
+// 이 방식이 훨씬 빠르다.
+```
+
 ### 역할 주석 (학습용)
 
 이 레포는 학습 기록이기도 해서, "코드가 무엇을 하는가" 대신 **"이 타입이나 API가 무엇이고 여기서 왜 쓰는가"**를 적는 역할 주석을 단다.
