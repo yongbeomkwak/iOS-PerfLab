@@ -11,7 +11,7 @@
     "StructOfArrays",
     "CacheLocality"
   ],
-  "status": "planned",
+  "status": "stage0",
   "stages": [
     0,
     1,
