@@ -70,7 +70,7 @@ scripts/perflab          # 파이프라인 CLI
 
 ```bash
 scripts/perflab status                 # 전체 주제 상태와 다음 단계
-scripts/perflab new --category <rendering|animation|concurrency|memory|dataIO> \
+scripts/perflab new --category <rendering|animation|concurrency|memory|dataIO|algorithms> \
   --slug <kebab-case> --title "<제목>" --summary "<한 줄 설명>" --tags A,B
 scripts/perflab validate <topic>       # 현재 상태 조건 검사
 scripts/perflab advance <topic>        # 다음 상태 조건 검사 후 전환
