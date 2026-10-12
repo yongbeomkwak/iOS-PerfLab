@@ -48,7 +48,6 @@ CATEGORIES = {
     "animation": ("Animation", "Animation"),
     "concurrency": ("Concurrency", "Concurrency"),
     "memory": ("Memory", "Memory"),
-    "dataIO": ("DataIO", "Data & I/O"),
     "algorithms": ("Algorithms", "Algorithms"),
 }
 STATUSES = ["proposed", "planned", "stage0", "stage1", "stage2", "measured", "summarized", "archived"]

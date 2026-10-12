@@ -97,7 +97,7 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
   └─ ...
 
 ────────────────────────────────────────────────
- Rendering | Animation | Concurrency | Memory | Data & I/O | Algorithms   ← 대주제 탭
+ Rendering | Animation | Concurrency | Memory | Algorithms   ← 대주제 탭
 ```
 
 - **탭 바**: 대주제(카테고리)
@@ -110,7 +110,6 @@ proposed → planned → stage0 → stage1 → stage2 → measured → summarize
 | **Animation** | 애니메이션 성능, 프레임 드랍, CoreAnimation |
 | **Concurrency** | GCD, Swift Concurrency, 스레드, 락, 데이터 경쟁 |
 | **Memory** | 메모리 사용량, 캐싱, 값/참조 타입, 메모리 레이아웃 |
-| **Data & I/O** | 대량 데이터 처리, 리스트 스크롤, 디스크/네트워크 I/O |
 | **Algorithms** | 연산량 자체가 병목인 문제, 실제 서비스에서 쓰는 자료구조와 알고리즘 |
 
 <br>

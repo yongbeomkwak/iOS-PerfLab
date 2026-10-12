@@ -4,7 +4,6 @@ public enum TopicCategory: String, CaseIterable, Codable, Hashable, Sendable, Id
     case animation
     case concurrency
     case memory
-    case dataIO
     case algorithms
 
     public var id: String { rawValue }
@@ -15,7 +14,6 @@ public enum TopicCategory: String, CaseIterable, Codable, Hashable, Sendable, Id
         case .animation: "Animation"
         case .concurrency: "Concurrency"
         case .memory: "Memory"
-        case .dataIO: "Data & I/O"
         case .algorithms: "Algorithms"
         }
     }
@@ -27,7 +25,6 @@ public enum TopicCategory: String, CaseIterable, Codable, Hashable, Sendable, Id
         case .animation: "wand.and.rays"
         case .concurrency: "arrow.triangle.branch"
         case .memory: "memorychip"
-        case .dataIO: "externaldrive"
         case .algorithms: "point.3.connected.trianglepath.dotted"
         }
     }
