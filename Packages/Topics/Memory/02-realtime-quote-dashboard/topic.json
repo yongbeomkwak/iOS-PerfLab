@@ -1,0 +1,11 @@
+{
+  "id": "02-realtime-quote-dashboard",
+  "number": 2,
+  "title": "수만 개 종목을 매초 갱신하는 시세 대시보드, 모델 타입과 메모리 배치가 얼마나 차이를 만들까?",
+  "summary": "2만 종목 시세를 매초 갱신, 정렬하는 화면에서 class/struct 모델과 Struct of Arrays 배치가 CPU와 메모리에 주는 차이를 잰다",
+  "category": "memory",
+  "tags": ["ARC", "struct", "CopyOnWrite", "StructOfArrays", "CacheLocality"],
+  "status": "proposed",
+  "stages": [0, 1, 2],
+  "frameworks": ["uikit", "swiftui"]
+}
