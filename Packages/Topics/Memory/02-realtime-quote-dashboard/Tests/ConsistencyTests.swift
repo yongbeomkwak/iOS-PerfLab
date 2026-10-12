@@ -15,21 +15,23 @@ struct ConsistencyTests {
 
     /// 깜빡임은 이번 틱에 바뀐 종목만, 직전 가격과 비교한 방향으로 나온다.
     @Test func stage0MoveReflectsLatestTickOnly() {
-        let store = Stage0QuoteStore(seeds: Scenario.seeds)
-        let id = 7
-        let seedPrice = Scenario.seeds[id].price
-        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice + 1, volumeDelta: 1)])
-        store.rank()
-        #expect(row(of: id, in: store).move == .up)
-        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice, volumeDelta: 1)])
-        store.rank()
-        #expect(row(of: id, in: store).move == .down)
-        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice, volumeDelta: 1)])
-        store.rank()
-        #expect(row(of: id, in: store).move == .none)
-        store.applyUpdates([])
-        store.rank()
-        #expect(row(of: id, in: store).move == .none)
+        checkMove(Stage0QuoteStore(seeds: Scenario.seeds))
+    }
+
+    @Test func stage1MatchesReference() {
+        replayBatches(Stage1QuoteStore(seeds: Scenario.seeds))
+    }
+
+    /// 참조 배열 두 개와 객체 5만 개를 센다. 객체는 필드(S0의 값 하나와 같은 120B)에 헤더 16B가 붙는다.
+    @Test func stage1MemoryCountsArraysAndObjects() {
+        let store = Stage1QuoteStore(seeds: Scenario.seeds)
+        let arrays = 2 * Scenario.quoteCount * MemoryLayout<Stage1Quote>.stride
+        let objects = Scenario.quoteCount * (MemoryLayout<Stage0Quote>.stride + 16)
+        #expect(store.modelMemoryBytes >= arrays + objects)
+    }
+
+    @Test func stage1MoveReflectsLatestTickOnly() {
+        checkMove(Stage1QuoteStore(seeds: Scenario.seeds))
     }
 
     // MARK: - Reference
@@ -57,6 +59,24 @@ struct ConsistencyTests {
         for rank in [0, Scenario.quoteCount / 2, Scenario.quoteCount - 1] + changed {
             #expect(store.row(at: rank) == reference.row(id: rankedIDs[rank]), "tick \(tick) rank \(rank)")
         }
+    }
+
+    /// 깜빡임은 이번 틱에 바뀐 종목만, 직전 가격과 비교한 방향으로 나온다.
+    private func checkMove(_ store: some QuoteStore) {
+        let id = 7
+        let seedPrice = Scenario.seeds[id].price
+        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice + 1, volumeDelta: 1)])
+        store.rank()
+        #expect(row(of: id, in: store).move == .up)
+        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice, volumeDelta: 1)])
+        store.rank()
+        #expect(row(of: id, in: store).move == .down)
+        store.applyUpdates([QuoteUpdate(id: id, price: seedPrice, volumeDelta: 1)])
+        store.rank()
+        #expect(row(of: id, in: store).move == .none)
+        store.applyUpdates([])
+        store.rank()
+        #expect(row(of: id, in: store).move == .none)
     }
 
     private func row(of id: Int, in store: some QuoteStore) -> QuoteRow {

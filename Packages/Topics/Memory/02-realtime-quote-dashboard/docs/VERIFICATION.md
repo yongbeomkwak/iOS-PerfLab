@@ -111,3 +111,55 @@
 |---|---|---|---|---|---|
 | 0-53 | `TickPlayer.swift:33` | `Task.yield`는 취소돼도 예외를 던지지 않는다(`Task.sleep`과 다르다) | ✅ 검증됨 | 문서: `_Concurrency.swiftinterface`의 `yield() async`(throws 없음), `sleep(for:) async throws`. 실험: 취소한 Task에서 `Task.sleep`은 `CancellationError`를 던졌다 | - |
 | 0-54 | `TickPlayer.swift:33-34` | 양보하는 동안 취소됐는지 한 번 더 보면 취소된 루프는 틱을 더 적용하지 않는다 | ✅ 검증됨 | 실험(`-swift-version 6`): 바로 취소한 `@MainActor` Task에서 yield 뒤 `Task.isCancelled`가 true였고 뒤 작업은 돌지 않았다. 코드: 검사가 `applyTick` 앞에 있다 | - |
+
+### [Stage 1] Quote를 final class로 바꾼 모델(Stage1Quote, Stage1QuoteStore)과 화면 검증 (2026-10-12)
+
+- 대상: `docs/PLAN.md`, `Scenario.swift`, `Model.swift`, `QuoteStore.swift`, `TickPlayer.swift`, `CommitObserver.swift`, `Topic.swift`, `Store/Stage1/Stage1Quote.swift`, `Store/Stage1/Stage1QuoteStore.swift`, `UIKit/Stage1ViewController.swift`, `SwiftUI/Stage1View.swift`, `Tests/ConsistencyTests.swift`. 대조: `Store/Stage0/*`, `UIKit/Stage0ViewController.swift`, `SwiftUI/Stage0View.swift`
+- 판정: ✅ 15건 · ⚠️ 3건 · ❌ 1건
+- 지문: `63feed0af598`
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| 1-1 | `Store/Stage1/Stage1Quote.swift:3-4` | final이면 하위 클래스가 재정의할 수 없어 컴파일러가 동적 디스패치 없이 접근할 수 있다 | ✅ 검증됨 | 실험: 단일 파일 `-O` 어셈블리에서 final은 간접 호출 0개, final을 빼면 24개. 단 `-wmo`에서는 final이 없어도 0개(internal 클래스라 추론). 이 앱의 Release는 `SWIFT_COMPILATION_MODE = wholemodule` | 판정과 별개로, 주석이 "final 덕분에 빨라진다"로 읽히지 않게 WMO에서는 추론된다는 점과 의도 표시 역할을 덧붙임 |
+| 1-2 | `Store/Stage1/Stage1Quote.swift:1` | S0과 필드, 갱신 규칙이 같고 타입만 참조 타입이다 | ✅ 검증됨 | 코드: 필드 12개, init, `changeRate`, 갱신 6줄. 테스트: `stage1MatchesReference`, `stage1MoveReflectsLatestTickOnly` | - |
+| 1-3 | `Store/Stage1/Stage1QuoteStore.swift:3-4` | 머리말: 배열 칸이 120B 값에서 8B 참조가 되고 종목마다 힙 객체가 생긴다 | ✅ 검증됨 | 실험: class 참조 stride 8. 코드: S0 대비 바뀐 것은 모두 class 전환에서 나온다 | - |
+| 1-4 | `Store/Stage1/Stage1QuoteStore.swift` | 새 배열로 복사되는 것은 참조이고 `ranked`는 `quotes`와 같은 객체를 가리킨다 | ✅ 검증됨 | 실험(`-O`, 5만 개): `ranked.allSatisfy { $0 === quotes[$0.id] }` true | - |
+| 1-5 | `Store/Stage1/Stage1QuoteStore.swift` | `malloc_size`는 할당기가 실제로 내준 크기(올림 포함), `passUnretained`는 참조 카운트를 바꾸지 않는다 | ✅ 검증됨 | 문서: `malloc/malloc.h`, `Swift.swiftinterface`. 실험: retain count 2 → 2, Swift 객체 주소의 `malloc_size` 160 | - |
+| 1-6 | `Store/Stage1/Stage1QuoteStore.swift` | 객체는 화면이 살아 있는 동안 그대로라 한 번만 센다 | ✅ 검증됨 | 코드: `quotes`는 init에서만 대입 | - |
+| 1-7 | `Stage1QuoteStore.swift`, `docs/PLAN.md` | `modelMemory` = 참조 배열 두 개의 `capacity × stride` + 객체마다 `malloc_size` | ✅ 검증됨 | 코드: PLAN 계산법과 같다. 테스트: 하한 확인 | - |
+| 1-8 | `Stage1QuoteStore.swift` | 꺼낸 객체를 고치면 배열이 가리키는 그 객체가 바뀐다 | ✅ 검증됨 | 테스트: `stage1MatchesReference` | - |
+| 1-9 | `Tests/ConsistencyTests.swift` | 객체는 필드 120B에 헤더 16B가 붙는다 | ✅ 검증됨 | 실험: `class_getInstanceSize` 136. Mac `malloc_size` 160 | - |
+| 1-10 | `UIKit/Stage1ViewController.swift`, `SwiftUI/Stage1View.swift` | 머리말이 코드와 같다. 화면 코드는 S0과 같다 | ✅ 검증됨 | 코드: S0과 diff하면 머리말, 타입 이름, store 타입만 다르다 | - |
+| 1-11 | `SwiftUI/Stage1View.swift` (S0에도 같은 코드) | `ForEach(상수 범위)`는 범위가 바뀌지 않는다고 약속하는 형태다 | ⚠️ 추정 | 실험: Release 빌드에서 `ForEach(0..<Scenario.quoteCount)`에 "non-constant range: argument must be an integer literal" 경고. 이 경고가 있을 때의 동작은 확인하지 않았다 | S0, S1 SwiftUI 화면에서 리터럴 `0..<50_000`으로 바꾸고 이유를 주석에 적음. 두 값이 같은지는 `ScenarioTests.listRangeMatchesQuoteCount`로 확인. Release 빌드(시뮬레이터)에서 이 경고가 사라진 것을 확인함 |
+| 1-12 | `docs/PLAN.md` S1 대가 | class의 `var` 접근에 `swift_beginAccess` 동적 검사가 붙어 S1의 대가가 된다 | ❌ 틀림 | 실험: Release(iOS) 목적 파일을 `objdump`로 읽음. 정렬 특수화 함수에는 `swift_beginAccess`가 없다. `applyUpdates`의 1곳은 store의 `quotes` 접근이고 S0에도 2곳 있다. 단일 파일 `-O`에서는 비교마다 불렸다(컴파일 모드에 따라 사라지는 비용) | PLAN에서 배타성 검사 대가를 지우고, 목적 파일에서 확인된 실제 ARC 위치(반영의 retain/release, 복사의 retain)로 바꿈 |
+| 1-13 | `docs/PLAN.md` S1 대가 | 참조를 복사할 때 참조 카운트를 늘리고 줄인다 | ✅ 검증됨 | 실험(Release 목적 파일): `Array._copyContents`에 `swift_retain`. `applyUpdates`는 종목마다 retain/release (S0에는 없다). `row(at:)`에도 있다 | - |
+| 1-14 | `docs/PLAN.md` S1 전략 | 정렬은 120B 값 대신 8B 참조를 옮긴다 | ✅ 검증됨 | 실험(Release 목적 파일): 특수화된 `_merge`는 `memmove`로 옮기고 retain/release가 없다 | - |
+| 1-15 | `docs/PLAN.md` | `seeds.map`으로 만든 5만 개는 힙에서 id 순서로 거의 붙어 놓인다 | ⚠️ 추정 | 실험(Mac `-O`): 이웃 id 객체의 주소 차이가 49,999쌍 중 49,506쌍에서 160B. iOS 할당기에서는 확인하지 않았다 | PLAN에 Mac 실험 결과와 "iOS에서는 확인하지 않았다"를 적고 "(추정)"을 유지함 |
+| 1-16 | `docs/PLAN.md` | 정렬 비교는 순서가 메모리 순서와 무관해 할당 배치 영향을 덜 받는다 | ⚠️ 추정 | 정렬은 id 순서에서 시작해 처음 run 구간은 이웃 객체를 차례로 읽고, 병합부터 무작위 접근이 된다. 영향 크기는 재지 않았다 | PLAN 문장을 "처음 짧은 구간은 이웃을 차례로, 병합부터 메모리 순서와 무관 (추정, 크기는 재지 않음)"으로 고침 |
+| 1-17 | `docs/PLAN.md` S1 대가 | 종목마다 힙 객체 하나(헤더 + 할당 단위 올림) | ✅ 검증됨 | 실험: 인스턴스 136B, Mac `malloc_size` 160B | - |
+| 1-18 | `Tests/ConsistencyTests.swift` | S1이 매 틱 기준 구현과 같은 결과를 낸다 | ✅ 검증됨 | 테스트 통과 | - |
+| 1-19 | `SwiftUI/Stage1View.swift`, `UIKit/Stage1ViewController.swift` | store 수명, tick으로 다시 그림, 메인에서 도는 Task, 약한 참조와 기존 Task 취소 | ✅ 검증됨 | 코드: S0과 같고 0-19, 0-20, 0-24, 0-25에서 확인 | - |
+
+#### 재검증 1: ForEach 리터럴 범위, final 주석, PLAN의 S1 대가 문장 (2026-10-12)
+
+- 대상: `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift`, `Tests/ScenarioTests.swift`, `Store/Stage1/Stage1Quote.swift`, `docs/PLAN.md`
+- 판정: ✅ 6건 · ⚠️ 1건 · ❌ 0건 (검증 시점 지문 `f425e4af40f3`)
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| 1-20 | `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift` | 컴파일러는 정수 리터럴만 상수 범위로 인정하고 아니면 Release에서 경고한다. 리터럴로 바꾸면 경고가 없어진다 | ✅ 검증됨 | 실험: 조치 전후 Release(`generic/platform=iOS`) 빌드 비교 | - |
+| 1-21 | 같은 파일, `Tests/ScenarioTests.swift` | 리터럴 `50_000`과 `Scenario.quoteCount`가 같다는 것은 `listRangeMatchesQuoteCount`가 확인한다 | ⚠️ 추정 | 테스트는 `quoteCount == 50_000`만 본다. 뷰의 리터럴만 바꾸면 계속 통과한다 | 주석을 실제 범위로 좁힘: "`quoteCount`를 바꾸면 테스트가 깨져 리터럴도 고치게 한다. 리터럴만 바꾸는 실수는 잡지 못한다" (뷰 두 곳과 테스트 문서 주석) |
+| 1-22 | `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift` | 범위만 리터럴로 바꿨고 두 Stage의 화면 코드는 여전히 같다 | ✅ 검증됨 | 코드 diff, 테스트 통과 | - |
+| 1-23 | `Store/Stage1/Stage1Quote.swift` | Release는 전체 모듈 최적화라 internal 클래스는 final로 추론된다. final은 의도 표시다 | ✅ 검증됨 | 실험 1-1, `SWIFT_COMPILATION_MODE = wholemodule` | - |
+| 1-24 | `docs/PLAN.md` | S1 객체 배치(Mac 실험, iOS 미확인), 정렬의 접근 순서(추정) | ✅ 검증됨 | 1-15 수치를 옮겼고 확인하지 않은 부분을 표기했다 | - |
+| 1-25 | `docs/PLAN.md` | S1에서 늘어나는 ARC는 반영의 retain/release와 복사의 retain. `_merge`는 `memmove` | ✅ 검증됨 | 실험 1-13, 1-14 | - |
+| 1-26 | `docs/PLAN.md` | 배타성 검사 대가를 지웠다. 남은 언급은 Release 정렬 코드에서 사라졌다는 사실뿐 | ✅ 검증됨 | `grep`, 실험 1-12 | - |
+
+#### 재검증 2: 1-21 조치 (2026-10-12)
+
+- 대상: `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift`, `Tests/ScenarioTests.swift` (주석만 바뀐 부분)
+- 판정: ✅ 1건 · ⚠️ 0건 · ❌ 0건 (검증 시점 지문 `63feed0af598`)
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| 1-27 | `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift`, `Tests/ScenarioTests.swift` | `quoteCount`를 바꾸면 테스트가 깨져 리터럴도 고치게 한다. 리터럴만 바꾸는 실수는 잡지 못한다 | ✅ 검증됨 | 코드: 테스트 본문은 `#expect(Scenario.quoteCount == 50_000)` 하나이고 뷰 리터럴은 읽지 않는다 | - |

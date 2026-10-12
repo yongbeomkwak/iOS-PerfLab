@@ -23,8 +23,11 @@ struct Stage0View: View {
                     .padding(.horizontal)
                 // List: 보이는 행만 만드는 지연 목록.
                 // ForEach(상수 범위): 범위가 바뀌지 않는다고 약속하는 형태라 행은 위치(순위)로 구분된다.
+                // 컴파일러는 정수 리터럴만 상수로 인정해서(아니면 Release에서 경고) Scenario.quoteCount 대신 리터럴을 쓴다.
+                // Scenario.quoteCount를 바꾸면 ScenarioTests.listRangeMatchesQuoteCount가 깨져 이 리터럴도 고치라고 알려 준다.
+                // 리터럴만 바꾸는 실수는 테스트가 잡지 못한다.
                 List {
-                    ForEach(0..<Scenario.quoteCount) { rank in
+                    ForEach(0..<50_000) { rank in
                         QuoteRowView(rank: rank, row: store.row(at: rank), tick: tick)
                     }
                 }

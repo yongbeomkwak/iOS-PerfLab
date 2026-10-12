@@ -18,6 +18,12 @@ struct ScenarioTests {
         #expect(Scenario.makeBatches() == Scenario.batches)
     }
 
+    /// SwiftUI Stage들은 `ForEach`에 리터럴 범위 `0..<50_000`을 쓴다 (Stage0View 주석).
+    /// `quoteCount`를 바꾸면 이 테스트가 깨져 뷰의 리터럴도 고치게 한다. 뷰의 리터럴만 바꾸는 경우는 잡지 못한다.
+    @Test func listRangeMatchesQuoteCount() {
+        #expect(Scenario.quoteCount == 50_000)
+    }
+
     @Test func seedsMatchScenarioScale() {
         #expect(Scenario.seeds.count == Scenario.quoteCount)
         #expect(Scenario.seeds.map(\.id) == Array(0..<Scenario.quoteCount))
