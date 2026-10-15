@@ -34,6 +34,23 @@ struct ConsistencyTests {
         checkMove(Stage1QuoteStore(seeds: Scenario.seeds))
     }
 
+    @Test func stage2MatchesReference() {
+        replayBatches(Stage2QuoteStore(seeds: Scenario.seeds))
+    }
+
+    /// 필드 배열 11개와 순번 배열을 센다. 문자열 3개, 숫자 필드 8개(Double 7개 + 틱 번호), 순번 4바이트다.
+    @Test func stage2MemoryCountsFieldArrays() {
+        let store = Stage2QuoteStore(seeds: Scenario.seeds)
+        let perQuote =
+            3 * MemoryLayout<String>.stride + 7 * MemoryLayout<Double>.stride
+            + MemoryLayout<Int>.stride + MemoryLayout<Int32>.stride
+        #expect(store.modelMemoryBytes >= Scenario.quoteCount * perQuote)
+    }
+
+    @Test func stage2MoveReflectsLatestTickOnly() {
+        checkMove(Stage2QuoteStore(seeds: Scenario.seeds))
+    }
+
     // MARK: - Reference
 
     /// `Scenario.batches`를 처음부터 순서대로 적용하며 매 틱 기준 구현과 비교한다.

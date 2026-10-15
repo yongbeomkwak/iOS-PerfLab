@@ -163,3 +163,43 @@
 | # | 위치 | 주장 | 판정 | 근거 | 조치 |
 |---|---|---|---|---|---|
 | 1-27 | `SwiftUI/Stage0View.swift`, `SwiftUI/Stage1View.swift`, `Tests/ScenarioTests.swift` | `quoteCount`를 바꾸면 테스트가 깨져 리터럴도 고치게 한다. 리터럴만 바꾸는 실수는 잡지 못한다 | ✅ 검증됨 | 코드: 테스트 본문은 `#expect(Scenario.quoteCount == 50_000)` 하나이고 뷰 리터럴은 읽지 않는다 | - |
+
+### [Stage 2] 필드별 배열(Struct of Arrays)과 Int32 순번 배열 제자리 정렬 검증 (2026-10-15)
+
+- 대상: `Store/Stage2/Stage2QuoteStore.swift`, `UIKit/Stage2ViewController.swift`, `SwiftUI/Stage2View.swift`, `Tests/ConsistencyTests.swift`(Stage 2 테스트 3개), `docs/PLAN.md`(S2 관련 문장), 참조용으로 `Model.swift`, `QuoteStore.swift`, `TickPlayer.swift`, `Scenario.swift`
+- 판정: ✅ 15건 · ⚠️ 6건 · ❌ 2건 (재검증 포함)
+- 지문: `38dbcb0af6e7`
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| 2-1 | 세 파일의 `// 변경:` 머리말 | S1의 class 객체를 필드별 배열로 바꿨고 순번 배열을 재사용한다. 화면은 S1과 같다 | ✅ 검증됨 | 코드, diff: 화면 두 파일은 머리말과 Stage 이름만 S1과 다르다 | - |
+| 2-2 | `Stage2QuoteStore.swift` 선언 | 필드 배열 11개와 순번 배열 1개 | ✅ 검증됨 | 코드: 선언을 세고 init과 `modelMemoryBytes`가 같은 배열을 센다 | - |
+| 2-3 | `Stage2QuoteStore.swift` `rank()` | 비교는 가격과 전일 종가만 읽고 동점이면 id 오름차순이다. 결과가 S0, S1과 같다 | ✅ 검증됨 | 테스트: `stage2MatchesReference`(40틱 전체), `stage2MoveReflectsLatestTickOnly` 통과 | - |
+| 2-4 | `Stage2QuoteStore.swift` `order` | `Int32`는 5만 개 id에 충분하고 4바이트이며 참조 카운트가 없다 | ✅ 검증됨 | 코드, 실험: `MemoryLayout<Int32>.stride == 4` | - |
+| 2-5 | `modelMemoryBytes`, `stage2MemoryCountsFieldArrays` | 배열 11개와 순번 배열의 크기를 센다. 5만 개 기준 약 5.5MB | ✅ 검증됨 | 실험: `String` 16B, `Int` 8B, `Int32` 4B. 테스트는 하한(`>=`)만 비교해 과대 계산은 잡지 못한다 | - |
+| 2-6 | `Stage2QuoteStore.swift` `rank()` 주석(처음 버전) | 정렬 도중 `order`를 고치므로 두 배열을 지역 상수로 받는다 | ❌ 틀림 | 실험: 지역 복사 없이 `order.sort { prices[..] }`를 `-O`와 `-Onone -enforce-exclusivity=checked`로 돌려도 배타성 위반이 없다. class의 다른 저장 프로퍼티끼리는 충돌하지 않는다 | 주석을 "클로저가 이 두 버퍼만 잡게 한다. 배타성 때문은 아니다(2-6). 정렬 시간에 득인지는 재지 않았다"로 고침 |
+| 2-7 | `rank()` 주석과 PLAN S2 기대 효과 | 제자리 정렬이라 틱마다의 할당이 사라진다 | ❌ 틀림(할당이 사라진다는 부분) | 실험: 정렬이 임시 버퍼를 할당한다 (재검증 2-18에서 정렬 1회에 약 100KB). 없어지는 것은 정렬 결과용 새 배열이다 | `rank()` 주석과 PLAN을 "정렬 결과용 새 배열 할당이 사라진다 (정렬 내부 임시 버퍼는 남는다)"로 고침. 측정 단계에서 Allocations로 S1과 S2의 틱당 할당을 비교한다 |
+| 2-8 | PLAN S2 sortTime 요인 ③ | S2 비교에 ARC가 없다 | ⚠️ 추정 | Release 목적 파일에서 비교 클로저에 `swift_retain`/`swift_release`가 있는지 보지 않았다 | PLAN에 "추정, 측정 단계에서 확인"을 적음. Time Profiler의 `swift_retain` 비율로 확인한다 |
+| 2-9 | PLAN S2 | 병합 단계부터 두 배열의 임의 위치를 읽어 연속 읽기의 이득이 제한적일 수 있다 | ⚠️ 추정 | 접근 순서나 캐시 미스를 재지 않았다 | PLAN에 "(추정)"으로 표기함. 측정 결과와 대조해 해석한다 |
+| 2-10 | PLAN S2 | 순번 배열을 id 순서로 다시 채우는 쓰기 5만 번이 `sortTime`에 든다 | ✅ 검증됨 | 코드: `TickPlayer`가 `rank()` 전체를 `sortTime`으로 재고, 채우기 루프가 `rank()` 안에 있다 | - |
+| 2-11 | PLAN S2 `row(at:)` | 여러 배열에서 값을 모아 `reloadTime`이 S0, S1과 조금 다를 수 있다 | ⚠️ 추정 | 읽는 배열 수는 코드로 확인했고, 크기는 측정 전이다 | PLAN에 "다를 수 있다"로 표기함. 측정 단계 `reloadTime` 비교로 확인한다 |
+| 2-12 | `row(at:)` 깜빡임 | 이번 틱에 바뀐 종목만 직전 가격과 비교한 방향이다 | ✅ 검증됨 | 테스트: `stage2MoveReflectsLatestTickOnly`, `stage2MatchesReference`의 변경 종목 행 비교 | - |
+| 2-13 | 화면 두 파일의 Task, weak, `ForEach` 리터럴 주석 | S1과 같은 코드와 주석이다 | ✅ 검증됨 | diff, 앞서 0-25, 0-48, 0-53, 1-20, 1-27에서 검증됨 | - |
+
+#### 재검증: 2-6, 2-7 조치와 미사용 필드 주석 (2026-10-15)
+
+- 대상: `Store/Stage2/Stage2QuoteStore.swift`, `docs/PLAN.md`
+- 판정: ✅ 7건 · ⚠️ 3건 · ❌ 0건 (검증 시점 지문 `38dbcb0af6e7`)
+
+| # | 위치 | 주장 | 판정 | 근거 | 조치 |
+|---|---|---|---|---|---|
+| 2-14 | `rank()` | 지역 상수로 받으면 클로저가 그 두 버퍼만 잡는다 | ✅ 검증됨 | 코드: 지역 `let`은 그 값만, 프로퍼티는 `self`를 캡처한다 | - |
+| 2-15 | `rank()` | 지역 상수로 받는 이유는 배타성 충돌이 아니다 | ✅ 검증됨 | 실험: 같은 모양의 `final class`를 `-Onone -enforce-exclusivity=checked`로 돌려 충돌이 없었다 | - |
+| 2-16 | `rank()` 주석 | 근거로 든 "VERIFICATION 2-6", "2-7"이 존재한다 | ⚠️ 추정 | 재검증 시점에 `[Stage 2]` 섹션이 비어 있었다 | 위 표에 2-1~2-13을 붙여 2-6, 2-7을 만들었다 |
+| 2-17 | `rank()` | 지역 복사가 정렬 시간에 득인지는 재지 않았다 | ✅ 검증됨 | 코드: 넣고 빼서 비교한 측정이 없다. 복사는 버퍼 참조 하나(retain 1회)다 | - |
+| 2-18 | `rank()` | `sort(by:)`는 새 결과 배열은 만들지 않지만 내부 임시 버퍼는 있다 | ✅ 검증됨 | 실험: Int32 5만 개 `-O`에서 `malloc`을 가로채 보니 정렬 1회마다 100032바이트 할당이 1번 | - |
+| 2-19 | 필드 선언 주석 | `opens`, `highs`, `lows`, `volumes`는 화면에 쓰지 않고 S0, S1과 필드 수를 맞추려고 둔다 | ✅ 검증됨 | 코드: `row(at:)`에서 읽지 않는다. S0, S1도 high, low, volume을 같은 식으로 갱신하고 `open`은 갱신하지 않는다 | - |
+| 2-20 | PLAN S2 기대 효과 | 정렬 결과용 새 배열 할당이 사라지고 내부 임시 버퍼는 남는다 | ✅ 검증됨 | 코드, 2-18 | - |
+| 2-21 | PLAN sortTime 요인 ①②④ | 요인이 섞여 있고 원소 크기는 120B → 8B → 4B다 | ✅ 검증됨 | 실험: 같은 필드 구성의 struct `stride` 120. 코드: `sortTime`은 `rank()` 한 구간이다 | - |
+| 2-22 | PLAN sortTime 요인 ③ | S2 비교에 ARC가 없다 | ⚠️ 추정 | 2-8과 같다. Release 목적 파일을 읽지 않았다 | PLAN에 추정 표기가 있고 측정 단계 Time Profiler로 확인한다 |
+| 2-23 | PLAN S2 | 임의 위치 읽기와 "이득이 제한적일 수 있다" | ⚠️ 추정 | 2-9와 같다 | PLAN에 "(추정)" 표기가 있다 |
