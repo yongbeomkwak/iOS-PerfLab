@@ -1,5 +1,6 @@
 import Shared
 import Topic01SearchAutocompleteHighlight
+import Topic02RealtimeQuoteDashboard
 
 // @perflab:imports
 
@@ -7,7 +8,8 @@ import Topic01SearchAutocompleteHighlight
 public enum TopicCatalog {
     @MainActor
     public static let all: [any PerfTopic] = [
-        SearchAutocompleteHighlightTopic()
+        SearchAutocompleteHighlightTopic(),
+        RealtimeQuoteDashboardTopic(),
         // @perflab:entries
     ]
 
